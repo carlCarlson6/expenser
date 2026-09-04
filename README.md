@@ -9,6 +9,7 @@ A personal expense tracking app. Log expenses and income, organize spending with
 | Framework | Next.js 16 (App Router, TypeScript, Turbopack) |
 | Hosting | Vercel |
 | Database | Neon (serverless Postgres); local Postgres via Docker |
+| DB Driver | `pg` (node-postgres) over TCP — works for both local Docker and Neon pooled |
 | ORM | Drizzle |
 | Auth | Clerk |
 | Styling | Tailwind CSS v4 + shadcn/ui |
