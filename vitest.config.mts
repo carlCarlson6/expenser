@@ -5,7 +5,7 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["test/**/*.test.ts"],
     environment: "node",
   },
 });

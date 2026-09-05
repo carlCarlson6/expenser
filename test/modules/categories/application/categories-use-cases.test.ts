@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { Category } from "@/modules/categories/domain/category";
-import { createCategory } from "./commands/create-category.command";
-import { deleteCategory } from "./commands/delete-category.command";
-import { seedDefaultCategories } from "./commands/seed-default-categories.command";
-import { updateCategory } from "./commands/update-category.command";
-import { listCategories } from "./queries/list-categories.query";
+import { createCategory } from "@/modules/categories/application/commands/create-category.command";
+import { deleteCategory } from "@/modules/categories/application/commands/delete-category.command";
+import { seedDefaultCategories } from "@/modules/categories/application/commands/seed-default-categories.command";
+import { updateCategory } from "@/modules/categories/application/commands/update-category.command";
+import { listCategories } from "@/modules/categories/application/queries/list-categories.query";
 import { TestCategoryRepository } from "./test-category.repository";
-import type { CategoryIdGenerator } from "./ports/category-id-generator.port";
-import type { CategoryUsageChecker } from "./ports/category-usage-checker.port";
+import type { CategoryIdGenerator } from "@/modules/categories/application/ports/category-id-generator.port";
+import type { CategoryUsageChecker } from "@/modules/categories/application/ports/category-usage-checker.port";
 
 function createIdGenerator(): CategoryIdGenerator {
   let counter = 0;

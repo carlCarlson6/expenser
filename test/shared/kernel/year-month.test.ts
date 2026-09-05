@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { YearMonth } from "./year-month";
+import { YearMonth } from "@/shared/kernel/year-month";
 
 describe("YearMonth", () => {
   describe("create", () => {

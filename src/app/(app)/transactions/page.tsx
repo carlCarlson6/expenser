@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { createTransactionAction } from "@/app/actions/transactions.actions";
 import { categories as categoriesComposition } from "@/composition/categories-composition";
@@ -153,8 +153,17 @@ export default async function TransactionsPage({
                           />
                         </span>
                       ) : (
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                          <Plus className="h-4 w-4 rotate-45" />
+                        <span
+                          className={`
+                            flex h-8 w-8 shrink-0 items-center justify-center rounded-full
+                            ${transaction.type === "income" ? "bg-green-100 text-green-700" : "bg-muted"}
+                          `}
+                        >
+                          {transaction.type === "income" ? (
+                            <ArrowDownLeft className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpRight className="h-4 w-4" />
+                          )}
                         </span>
                       )}
                       <div className="min-w-0">

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { MoreHorizontal } from "lucide-react";
 import {
   deleteTransactionAction,
   updateTransactionAction,
@@ -50,7 +51,14 @@ export function TransactionActions({
   return (
     <Dialog open={editOpen} onOpenChange={setEditOpen}>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="sm">Actions</Button>} />
+          <DropdownMenuTrigger
+            render={(
+              <Button variant="ghost" size="sm" className="px-2 sm:px-3">
+                <MoreHorizontal className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Actions</span>
+              </Button>
+            )}
+          />
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setEditOpen(true)}>
             Edit

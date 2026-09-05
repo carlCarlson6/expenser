@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Money } from "./money";
+import { Money } from "@/shared/kernel/money";
 
 describe("Money", () => {
   describe("fromCents", () => {

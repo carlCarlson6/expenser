@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createTransaction } from "./commands/create-transaction.command";
-import { deleteTransaction } from "./commands/delete-transaction.command";
-import { updateTransaction } from "./commands/update-transaction.command";
+import { createTransaction } from "@/modules/ledger/application/commands/create-transaction.command";
+import { deleteTransaction } from "@/modules/ledger/application/commands/delete-transaction.command";
+import { updateTransaction } from "@/modules/ledger/application/commands/update-transaction.command";
 import { TestTransactionRepository } from "./test-transaction.repository";
-import type { CategoryLookup } from "./ports/category-lookup.port";
-import type { TransactionIdGenerator } from "./ports/transaction-id-generator.port";
+import type { CategoryLookup } from "@/modules/ledger/application/ports/category-lookup.port";
+import type { TransactionIdGenerator } from "@/modules/ledger/application/ports/transaction-id-generator.port";
 
 function createIdGenerator(): TransactionIdGenerator {
   let counter = 0;

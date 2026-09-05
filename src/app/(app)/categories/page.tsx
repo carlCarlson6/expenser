@@ -42,48 +42,52 @@ export default async function CategoriesPage() {
       </Card>
 
       {categoryList.length === 0 ? (
-        <p className="text-muted-foreground">
-          No categories yet. Add your first one above, or open the dashboard to
-          seed default categories.
-        </p>
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No categories yet. Add your first one above, or open the dashboard to
+            seed default categories.
+          </CardContent>
+        </Card>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead>Icon</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categoryList.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell className="font-medium">{category.name}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-4 w-4 rounded-full"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {category.color}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 capitalize">
-                    <CategoryIcon name={category.icon} className="h-4 w-4" />
-                    {category.icon}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <CategoryActions category={category} />
-                </TableCell>
+        <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Color</TableHead>
+                <TableHead>Icon</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {categoryList.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell className="font-medium">{category.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-4 w-4 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {category.color}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 capitalize">
+                      <CategoryIcon name={category.icon} className="h-4 w-4" />
+                      {category.icon}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <CategoryActions category={category} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );

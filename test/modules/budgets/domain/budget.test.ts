@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Money } from "@/shared/kernel/money";
-import { Budget } from "./budget";
-import { BudgetStatus } from "./budget-status";
+import { Budget } from "@/modules/budgets/domain/budget";
+import { BudgetStatus } from "@/modules/budgets/domain/budget-status";
 
 describe("Budget", () => {
   const baseProps = {

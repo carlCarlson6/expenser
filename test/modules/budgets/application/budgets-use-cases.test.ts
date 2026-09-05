@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { Money } from "@/shared/kernel/money";
 import { YearMonth } from "@/shared/kernel/year-month";
-import { setBudget } from "./commands/set-budget.command";
-import { deleteBudget } from "./commands/delete-budget.command";
-import { listBudgetStatusesForMonth } from "./queries/list-budget-statuses-for-month.query";
+import { setBudget } from "@/modules/budgets/application/commands/set-budget.command";
+import { deleteBudget } from "@/modules/budgets/application/commands/delete-budget.command";
+import { listBudgetStatusesForMonth } from "@/modules/budgets/application/queries/list-budget-statuses-for-month.query";
 import { TestBudgetRepository } from "./test-budget.repository";
-import type { BudgetCategoryLookup } from "./ports/budget-category-lookup.port";
-import type { BudgetIdGenerator } from "./ports/budget-id-generator.port";
-import type { SpendingByCategoryReadModel } from "./budget.dto";
+import type { BudgetCategoryLookup } from "@/modules/budgets/application/ports/budget-category-lookup.port";
+import type { BudgetIdGenerator } from "@/modules/budgets/application/ports/budget-id-generator.port";
+import type { SpendingByCategoryReadModel } from "@/modules/budgets/application/budget.dto";
 import type { CategoryDto } from "@/modules/categories/application/category.dto";
 
 function createIdGenerator(): BudgetIdGenerator {

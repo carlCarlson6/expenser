@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Category } from "./category";
+import { Category } from "@/modules/categories/domain/category";
 
 describe("Category", () => {
   const validProps = {

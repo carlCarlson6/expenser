@@ -91,6 +91,53 @@ Each step ends in a demo-able state.
 
 Multi-currency, recurring expenses, receipt uploads, shared households, income categories, CSV import/export, PWA install, E2E tests, domain events/outbox.
 
+## Deployment
+
+### 1. Clerk production instance
+
+1. Create an application at https://dashboard.clerk.com.
+2. Copy the **Publishable key** and **Secret key**.
+3. In **Authentication → Social connections**, enable the providers you want (e.g. Google, GitHub).
+4. In **Sessions**, ensure session tokens include the user ID.
+
+### 2. Neon database
+
+1. Create a project at https://console.neon.tech.
+2. Copy the **pooled** connection string (`postgresql://…@…-pooler.neon.tech/…`) as `DATABASE_URL`.
+3. Copy the **direct / un-pooled** connection string as `DATABASE_URL_UNPOOLED`.
+4. Run migrations from your machine once before the first deploy:
+
+```bash
+DATABASE_URL_UNPOOLED=<direct-neon-url> npm run db:migrate
+```
+
+### 3. Vercel project
+
+1. Import the repo on https://vercel.com.
+2. Add these environment variables:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Neon pooled connection string |
+| `DATABASE_URL_UNPOOLED` | Neon direct connection string |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY` | Clerk secret key |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/dashboard` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/dashboard` |
+
+3. Deploy. Vercel will run `npm run build` automatically.
+
+### 4. Smoke test
+
+1. Open the production URL on your phone.
+2. Sign in.
+3. Create a category (or wait for defaults on dashboard).
+4. Add an expense transaction.
+5. Set a budget for the category.
+6. Verify the dashboard updates with charts and budget status.
+
 ## Local Development
 
 The app uses Neon in production, but local development runs against Postgres in Docker:

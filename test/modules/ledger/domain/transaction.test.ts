@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Money } from "@/shared/kernel/money";
-import { Transaction } from "./transaction";
+import { Transaction } from "@/modules/ledger/domain/transaction";
 
 describe("Transaction", () => {
   const baseProps = {
