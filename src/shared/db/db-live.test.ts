@@ -6,7 +6,6 @@ import { listCategoriesWithTotals } from "@/modules/categories/domain/queries/li
 import { createExpense } from "@/modules/expenses/domain/commands/create-expense";
 import { listExpenses } from "@/modules/expenses/domain/queries/list-expenses";
 import { getDashboardData } from "@/modules/reports/domain/queries/get-dashboard-data";
-import { getReportsData } from "@/modules/reports/domain/queries/get-reports-data";
 import { getProfile } from "@/modules/users/domain/queries/get-profile";
 import { profiles } from "@/modules/users/data/schema";
 import type { Actor } from "@/modules/users/domain/types";
@@ -97,14 +96,10 @@ describe.skipIf(!live)("database (live)", () => {
 
   it("buckets spending by time period", async () => {
     const repos = createRepos(db);
-    const data = await getReportsData(
+    const data = await getDashboardData(
       repos,
       actor,
-      {
-        from: "2026-09-01",
-        to: "2026-10-01",
-        granularity: "month",
-      },
+      { from: "2026-09-01", to: "2026-10-01", granularity: "month" },
       new Date(2026, 9, 9),
     );
     expect(data.totalCents).toBe(11799);
@@ -112,20 +107,42 @@ describe.skipIf(!live)("database (live)", () => {
     expect(september?.totalCents).toBe(10000);
     const october = data.buckets.find((b) => b.bucket === "2026-10-01");
     expect(october?.totalCents).toBe(1799);
+    expect(data.preset).toBe("custom");
   });
 
-  it("aggregates the current month on the dashboard", async () => {
+  it("compares against the previous period of equal length", async () => {
     const repos = createRepos(db);
     const data = await getDashboardData(
       repos,
       actor,
+      { from: "2026-09-01", to: "2026-09-30", granularity: "day" },
       new Date(2026, 9, 9),
     );
-    expect(data.thisMonthTotal).toBe(1799);
-    expect(data.lastMonthTotal).toBe(10000);
-    expect(data.count).toBe(2);
-    expect(data.trend).toHaveLength(6);
-    expect(data.byCategory[0].totalCents).toBe(1799);
+    // September window holds only the 10.000 rent expense.
+    expect(data.totalCents).toBe(10000);
+    // The 30 days before it (Aug) hold nothing.
+    expect(data.previousTotalCents).toBe(0);
+    expect(data.change).toBeNull();
+    expect(data.buckets).toHaveLength(30);
+  });
+
+  it("scopes the dashboard to a single category", async () => {
+    const repos = createRepos(db);
+    const data = await getDashboardData(
+      repos,
+      actor,
+      {
+        from: "2026-09-01",
+        to: "2026-10-31",
+        granularity: "month",
+        categoryId: otherId,
+      },
+      new Date(2026, 9, 9),
+    );
+    expect(data.totalCents).toBe(10000);
+    expect(data.count).toBe(1);
+    expect(data.byCategory).toHaveLength(1);
+    expect(data.byCategory[0].name).toBeTruthy();
   });
 
   it("reassigns expenses when deleting a category", async () => {

@@ -31,7 +31,7 @@ src/
 │   ├── users/                # profile provisioning, settings (locale, currency)
 │   ├── categories/           # category CRUD, default seed, delete→reassign
 │   ├── expenses/             # expense CRUD, paginated filtered list
-│   └── reports/              # read-only aggregations (time buckets, category sums)
+│   └── reports/              # read-only aggregations powering the dashboard
 │       └── <slice>/
 │           ├── domain/       # commands/ (writes) · queries/ (reads) · validators/ · types
 │           ├── data/         # drizzle table + repository (+ interfaces)
@@ -69,6 +69,10 @@ Rules of the road:
 - **Language**: stored on the profile; the URL prefix drives rendering
   (Spanish is unprefixed). If they disagree (e.g. new device), the app layout
   redirects once to the profile's locale.
+- **Dashboard is the only analytics surface**: period presets (30 days / 6
+  months / 12 months / this month / custom), granularity (day/week/month) and
+  an optional category filter drive one query; the summary cards, chart,
+  category table and recent list all reflect the same selection.
 
 ## Getting started
 

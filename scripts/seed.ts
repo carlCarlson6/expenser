@@ -35,6 +35,7 @@ if (!clerkUserId) {
   );
   process.exit(1);
 }
+const userId: string = clerkUserId;
 
 const MONTHS = 6;
 
@@ -193,10 +194,10 @@ async function main() {
   const db: Db = getDb();
   const repos = createRepos(db);
 
-  const profile = await getProfile(repos, clerkUserId);
+  const profile = await getProfile(repos, userId);
   const actor: Actor = {
     profileId: profile.id,
-    clerkUserId,
+    clerkUserId: userId,
     locale: profile.locale,
     currency: profile.currency,
   };
@@ -220,7 +221,7 @@ async function main() {
     console.warn(`Categories not found (skipped): ${missing.join(", ")}`);
   }
 
-  const rand = mulberry32(hash(clerkUserId));
+  const rand = mulberry32(hash(userId));
   const today = new Date();
   const start = new Date(today);
   start.setMonth(start.getMonth() - MONTHS);

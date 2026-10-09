@@ -19,6 +19,7 @@ export interface ReportsRepository {
     profileId: string,
     from: string,
     toExclusive: string,
+    categoryId?: string,
   ): Promise<{ totalCents: number; count: number }>;
   sumByCategory(
     profileId: string,
@@ -52,14 +53,14 @@ export function createReportsRepository(db: Db): ReportsRepository {
   };
 
   return {
-    async totalBetween(profileId, from, toExclusive) {
+    async totalBetween(profileId, from, toExclusive, categoryId) {
       const rows = await db
         .select({
           totalCents: sql<number>`coalesce(sum(${expenses.amountCents}), 0)::int`,
           count: sql<number>`count(*)::int`,
         })
         .from(expenses)
-        .where(conditions(profileId, from, toExclusive));
+        .where(conditions(profileId, from, toExclusive, categoryId));
       return rows[0] ?? { totalCents: 0, count: 0 };
     },
 
