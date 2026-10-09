@@ -28,6 +28,7 @@
     "next-intl": "^4.14.9",
     "postgres": "^3.4.9",
     "react": "19.3.0",
+    "react-colorful": "^5.8.1",
     "react-dom": "19.3.0",
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",

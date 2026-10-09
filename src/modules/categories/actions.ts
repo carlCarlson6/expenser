@@ -26,6 +26,7 @@ export async function createCategoryAction(
 ): Promise<ActionResult> {
   const parsed = categoryNameSchema.safeParse({
     name: formData.get("name"),
+    color: formData.get("color") ?? undefined,
   });
   if (!parsed.success) {
     return fail("generic", z.flattenError(parsed.error).fieldErrors);

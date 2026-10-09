@@ -5,13 +5,18 @@ import { listCategories } from "@/modules/categories/domain/queries/list-categor
 import {
   dashboardFiltersSchema,
   getDashboardData,
-  presetRange,
 } from "@/modules/reports/domain/queries/get-dashboard-data";
+import {
+  parsePreset,
+  presetRange,
+} from "@/modules/reports/domain/period";
 import {
   CategoryBadge,
   CategoryDot,
   CategoryLegend,
 } from "@/modules/reports/ui/category-legend";
+import { CategoryDonut } from "@/modules/reports/ui/category-donut";
+import { parseChartType } from "@/modules/reports/ui/chart";
 import { DashboardFilters } from "@/modules/reports/ui/dashboard-filters";
 import { bucketLabel } from "@/modules/reports/ui/labels";
 import { ShareBar } from "@/modules/reports/ui/share-bar";
@@ -39,13 +44,7 @@ export default async function DashboardPage({
   const str = (v: string | string[] | undefined) =>
     typeof v === "string" ? v : undefined;
 
-  const preset = str(raw.preset);
-  const presetDates = presetRange(
-    preset === "30d" || preset === "6m" || preset === "12m" || preset === "month"
-      ? preset
-      : "6m",
-    today,
-  );
+  const presetDates = presetRange(parsePreset(raw.preset), today);
 
   const filters = dashboardFiltersSchema.parse({
     from: str(raw.from) ?? presetDates.from,
@@ -54,6 +53,8 @@ export default async function DashboardPage({
     categoryId: str(raw.categoryId),
   });
 
+  const chart = parseChartType(raw.chart);
+
   const [data, categories] = await Promise.all([
     getDashboardData(repos, actor, filters, today),
     listCategories(repos, actor),
@@ -61,6 +62,8 @@ export default async function DashboardPage({
 
   const fmt = (cents: number) => formatCents(cents, actor.currency, locale);
   const card = "rounded-xl border border-zinc-200 bg-white p-5";
+  // Bars wear the filtered category's color; without a filter they stay neutral.
+  const activeCategory = categories.find((c) => c.id === data.categoryId);
 
   return (
     <section className="space-y-4">
@@ -70,10 +73,13 @@ export default async function DashboardPage({
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
         initial={{
           preset: data.preset,
-          from: data.from,
-          to: data.to,
+          // Preset ranges are implicit: only an explicit custom range shows
+          // its dates in the From/To fields.
+          from: data.preset === "custom" ? data.from : "",
+          to: data.preset === "custom" ? data.to : "",
           granularity: data.granularity,
           categoryId: data.categoryId ?? "",
+          chart,
         }}
       />
 
@@ -117,21 +123,37 @@ export default async function DashboardPage({
 
       <div className={card}>
         <h2 className="mb-3 text-sm font-medium text-zinc-500">
-          {t("overTime")}
+          {chart === "donut" ? t("byCategory") : t("overTime")}
         </h2>
-        {data.buckets.length === 0 || data.totalCents === 0 ? (
+        {(chart === "donut"
+          ? data.byCategory.length === 0
+          : data.buckets.length === 0) || data.totalCents === 0 ? (
           <p className="py-12 text-center text-sm text-zinc-500">
             {t("noData")}
           </p>
         ) : (
-          <TrendChart
-            data={data.buckets.map((b) => ({
-              label: bucketLabel(b.bucket, data.granularity, locale),
-              value: b.totalCents / 100,
-            }))}
-            currency={actor.currency}
-            locale={locale}
-          />
+          chart === "donut" ? (
+            <CategoryDonut
+              items={data.byCategory.map((c) => ({
+                name: c.name,
+                color: c.color,
+                totalCents: c.totalCents,
+              }))}
+              currency={actor.currency}
+              locale={locale}
+            />
+          ) : (
+            <TrendChart
+              variant={chart}
+              data={data.buckets.map((b) => ({
+                label: bucketLabel(b.bucket, data.granularity, locale),
+                value: b.totalCents / 100,
+              }))}
+              currency={actor.currency}
+              locale={locale}
+              color={activeCategory?.color}
+            />
+          )
         )}
         <CategoryLegend
           items={data.byCategory.slice(0, 8).map((c) => ({

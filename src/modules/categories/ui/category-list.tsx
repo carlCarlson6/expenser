@@ -14,7 +14,7 @@ import {
   renameCategoryAction,
   setCategoryColorAction,
 } from "../actions";
-import { ColorPicker } from "./color-picker";
+import { ColorControls, ColorPicker } from "./color-picker";
 
 type Row = {
   id: string;
@@ -31,17 +31,22 @@ type Dialog =
   | { type: "delete"; category: Row }
   | null;
 
-/** One-click recolor straight from the row: calls the Server Action
- *  directly with a FormData payload. */
-function InlineColorForm({
-  category,
-  palette,
-}: {
-  category: Row;
-  palette: string[];
-}) {
+/** One-click recolor straight from the row: calls the Server Action directly
+ *  with a FormData payload. The picker drives local preview state while
+ *  dragging; only the committed value reaches the server. */
+function InlineColorForm({ category }: { category: Row }) {
+  const t = useTranslations("categories");
+  const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [draft, setDraft] = useState(category.color);
+  const [synced, setSynced] = useState(category.color);
+
+  // Re-sync the preview when the row's persisted color changes underneath us.
+  if (category.color !== synced) {
+    setSynced(category.color);
+    setDraft(category.color);
+  }
 
   const apply = (color: string) => {
     setOpen(false);
@@ -57,37 +62,28 @@ function InlineColorForm({
     <div className="relative">
       <button
         type="button"
-        aria-label={`Color de ${category.name}`}
+        aria-label={t("colorTrigger", { name: category.name })}
+        aria-expanded={open}
         disabled={pending}
         onClick={() => setOpen((v) => !v)}
         className="h-6 w-6 cursor-pointer rounded-full border-2 border-zinc-200 transition-transform hover:scale-110 disabled:opacity-50"
-        style={{ backgroundColor: category.color }}
+        style={{ backgroundColor: open ? draft : category.color }}
       />
       {open && (
         <>
           <button
             type="button"
-            aria-label="Cerrar"
+            aria-label={tCommon("close")}
             className="fixed inset-0 z-10 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 z-20 mt-1 flex flex-wrap gap-1.5 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg">
-            {palette.map((color) => (
-              <button
-                key={color}
-                type="button"
-                aria-label={color}
-                onClick={() => apply(color)}
-                className="h-6 w-6 cursor-pointer rounded-full border-2"
-                style={{
-                  backgroundColor: color,
-                  borderColor:
-                    category.color.toLowerCase() === color
-                      ? "#18181b"
-                      : "transparent",
-                }}
-              />
-            ))}
+          <div className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg">
+            <ColorControls
+              value={draft}
+              onChange={setDraft}
+              onCommit={apply}
+              size="sm"
+            />
           </div>
         </>
       )}
@@ -106,7 +102,6 @@ export function CategoryList({
   const tCommon = useTranslations("common");
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = () => setDialog(null);
-  const usedColors = categories.map((c) => c.color);
 
   return (
     <>
@@ -152,7 +147,7 @@ export function CategoryList({
                 <td className="px-4 py-3 text-right font-medium">{c.total}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
-                    <InlineColorForm category={c} palette={usedColors} />
+                    <InlineColorForm category={c} />
                     <Button
                       variant="ghost"
                       onClick={() => setDialog({ type: "rename", category: c })}

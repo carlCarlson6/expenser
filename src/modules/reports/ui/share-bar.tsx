@@ -1,7 +1,9 @@
+import { ALL_CATEGORIES_COLOR } from "./colors";
+
 /** CSS-only share bar, tinted with the category color. */
 export function ShareBar({
   share,
-  color = "#6366f1",
+  color = ALL_CATEGORIES_COLOR,
 }: {
   share: number;
   color?: string;

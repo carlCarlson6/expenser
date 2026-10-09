@@ -7,12 +7,20 @@ import type { Actor } from "@/modules/users/domain/types";
 import type { ReportsRepository } from "../../data/repository";
 import {
   addDays,
-  addMonths,
   bucketsBetween,
   parseISODate,
   toISODate,
   type Granularity,
 } from "../dates";
+import {
+  DEFAULT_PRESET,
+  detectPreset,
+  presetGranularity,
+  presetRange,
+  type Preset,
+} from "../period";
+
+export { PRESETS, type Preset } from "../period";
 
 type Repos = {
   reports: ReportsRepository;
@@ -27,9 +35,6 @@ export type CategoryShare = {
   share: number;
 };
 
-export const PRESETS = ["30d", "6m", "12m", "month", "custom"] as const;
-export type Preset = (typeof PRESETS)[number];
-
 export const dashboardFiltersSchema = z.object({
   from: z
     .string()
@@ -39,7 +44,9 @@ export const dashboardFiltersSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  granularity: z.enum(["day", "week", "month"]).catch("month"),
+  // Undefined means "no explicit choice": the period picks its own bucket
+  // size (see `presetGranularity`), and junk values fall back to that too.
+  granularity: z.enum(["day", "week", "month"]).optional().catch(undefined),
   categoryId: z.uuid().optional(),
 });
 
@@ -62,50 +69,19 @@ export type DashboardData = {
   recent: ExpenseWithCategory[];
 };
 
-/** Default window: the last 6 months, which is also the trend chart span. */
-export function presetRange(
-  preset: Preset,
-  today: Date,
-): { from: string; to: string } {
-  const to = toISODate(today);
-  switch (preset) {
-    case "30d":
-      return { from: toISODate(addDays(today, -29)), to };
-    case "12m":
-      return { from: toISODate(addMonths(today, -12)), to };
-    case "month":
-      return { from: toISODate(new Date(today.getFullYear(), today.getMonth(), 1)), to };
-    case "custom":
-    case "6m":
-      return { from: toISODate(addMonths(today, -6)), to };
-  }
-}
-
-/** Detects which preset a range corresponds to (for the UI's active state). */
-export function detectPreset(
-  from: string,
-  to: string,
-  today: Date,
-): Preset {
-  const found = PRESETS.find((p) => {
-    if (p === "custom") return false;
-    const range = presetRange(p, today);
-    return range.from === from && range.to === to;
-  });
-  return found ?? "custom";
-}
-
 export async function getDashboardData(
   repos: Repos,
   actor: Actor,
   filters: DashboardFilters,
   today: Date,
 ): Promise<DashboardData> {
-  const fallback = presetRange("6m", today);
+  const fallback = presetRange(DEFAULT_PRESET, today);
   const from = filters.from ?? fallback.from;
   const to = filters.to ?? fallback.to;
   const toExclusive = toISODate(addDays(parseISODate(to), 1));
-  const granularity = filters.granularity;
+  const preset = detectPreset(from, to, today);
+  // The period picks its own bucket size; an explicit choice always wins.
+  const granularity = filters.granularity ?? presetGranularity(preset);
 
   // Previous window: same length, immediately before.
   const days =
@@ -152,7 +128,7 @@ export async function getDashboardData(
   return {
     from,
     to,
-    preset: detectPreset(from, to, today),
+    preset,
     granularity,
     categoryId: filters.categoryId,
     totalCents: current.totalCents,

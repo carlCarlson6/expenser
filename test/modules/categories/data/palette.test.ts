@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { CATEGORY_PALETTE, isHexColor, nextColor } from "@/modules/categories/data/palette";
+import {
+  CATEGORY_PALETTE,
+  isHexColor,
+  nextColor,
+  normalizeHex,
+} from "@/modules/categories/data/palette";
 
 describe("isHexColor", () => {
   it.each(["#ffffff", "#000000", "#22C55E", "#6366f1"])(
@@ -12,6 +17,13 @@ describe("isHexColor", () => {
     "rejects %s",
     (value) => expect(isHexColor(value)).toBe(false),
   );
+});
+
+describe("normalizeHex", () => {
+  it("lowercases and trims so stored colors compare equal", () => {
+    expect(normalizeHex("  #22C55E ")).toBe("#22c55e");
+    expect(normalizeHex("#22c55e")).toBe("#22c55e");
+  });
 });
 
 describe("nextColor", () => {

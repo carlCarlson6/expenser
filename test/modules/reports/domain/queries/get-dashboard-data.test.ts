@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getDashboardData } from "@/modules/reports/domain/queries/get-dashboard-data";
+import { parsePreset, presetGranularity } from "@/modules/reports/domain/period";
 
 const actor = {
   profileId: "p1",
@@ -13,7 +14,7 @@ const today = new Date(2026, 9, 9); // 2026-10-09
 
 /** The default range starts here, so the query's *previous* period call is
  *  the one with an earlier `from`. */
-const DEFAULT_FROM = "2026-04-09";
+const DEFAULT_FROM = "2026-10-01";
 
 type TotalBetween = (
   profileId: string,
@@ -55,14 +56,46 @@ async function run(
   return getDashboardData(repos as never, actor, filters, today);
 }
 
+describe("parsePreset", () => {
+  it("falls back to this month for missing or unknown values", () => {
+    expect(parsePreset(undefined)).toBe("month");
+    expect(parsePreset(["6m", "12m"])).toBe("month");
+    expect(parsePreset("yesterday")).toBe("month");
+  });
+
+  it("never returns custom, which is expressed as explicit dates", () => {
+    expect(parsePreset("custom")).toBe("month");
+  });
+
+  it("keeps a known preset", () => {
+    expect(parsePreset("12m")).toBe("12m");
+  });
+});
+
+describe("presetGranularity", () => {
+  it("keeps every preset above a single bucket", () => {
+    expect(presetGranularity("month")).toBe("day");
+    expect(presetGranularity("30d")).toBe("day");
+    expect(presetGranularity("6m")).toBe("week");
+    expect(presetGranularity("12m")).toBe("month");
+    expect(presetGranularity("custom")).toBe("day");
+  });
+});
+
 describe("getDashboardData", () => {
-  it("defaults to the last 6 months and monthly buckets", async () => {
-    const data = await run({ granularity: "month" });
-    expect(data.from).toBe("2026-04-09");
+  it("defaults to this month, grouped by day", async () => {
+    const data = await run({});
+    expect(data.from).toBe("2026-10-01");
     expect(data.to).toBe("2026-10-09");
-    expect(data.granularity).toBe("month");
-    // 7 buckets: Apr..Oct (inclusive of both partial ends).
-    expect(data.buckets).toHaveLength(7);
+    expect(data.preset).toBe("month");
+    expect(data.granularity).toBe("day");
+    // 9 buckets: Oct 1..Oct 9, one per day.
+    expect(data.buckets).toHaveLength(9);
+  });
+
+  it("keeps an explicitly requested granularity", async () => {
+    const data = await run({ granularity: "week" });
+    expect(data.granularity).toBe("week");
   });
 
   it("reports the category shares of the period total", async () => {
@@ -72,9 +105,10 @@ describe("getDashboardData", () => {
   });
 
   it("computes the change against the previous period of equal length", async () => {
-    const data = await run({ granularity: "month" });
+    const data = await run({});
     expect(data.change).toBe(2); // 1500 vs 500
-    expect(data.dailyAvg).toBe(Math.round(1500 / 184));
+    // The default window spans 9 days (Oct 1..Oct 9).
+    expect(data.dailyAvg).toBe(Math.round(1500 / 9));
   });
 
   it("returns a null change when the previous period is empty", async () => {

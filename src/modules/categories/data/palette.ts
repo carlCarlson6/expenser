@@ -15,10 +15,17 @@ export const CATEGORY_PALETTE = [
   "#64748b", // slate (reserved for "Other"-style buckets)
 ] as const;
 
-const HEX = /^#[0-9a-fA-F]{6}$/;
+/** Colors are always stored as `#rrggbb`; the native color wheel always
+ *  yields this shape. */
+export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 export function isHexColor(value: string): boolean {
-  return HEX.test(value);
+  return HEX_COLOR.test(value);
+}
+
+/** Canonical form for storage and comparison. */
+export function normalizeHex(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 /** Picks the palette entry furthest from the colors already in use, so

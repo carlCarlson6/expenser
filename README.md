@@ -84,10 +84,17 @@ Rules of the road:
 - **Language**: stored on the profile; the URL prefix drives rendering
   (Spanish is unprefixed). If they disagree (e.g. new device), the app layout
   redirects once to the profile's locale.
-- **Dashboard is the only analytics surface**: period presets (30 days / 6
-  months / 12 months / this month / custom), granularity (day/week/month) and
-  an optional category filter drive one query; the summary cards, chart,
-  category table and recent list all reflect the same selection.
+- **Dashboard is the only analytics surface**: period presets (this month by
+  default, then 30 days / 6 months / 12 months / custom), granularity
+  (day/week/month) and an optional category filter drive one query; the summary
+  cards, chart, category table and recent list all reflect the same selection.
+- **A preset implies its own bucket size** (this month / 30 days → day, 6 months
+  → week, 12 months → month) so no window collapses into a single bar; an
+  explicit grouping always wins and is the only one kept in the URL.
+- **Chart shape is presentation state**: the `?chart=` param picks bars,
+  line, area, cumulative or a by-category donut. It never changes what the
+  query aggregates, so switching shape keeps the period untouched and the
+  param stays out of the domain layer.
 
 ## Getting started
 
