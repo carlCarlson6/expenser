@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createCategoryRepository } from "@/modules/categories/data/repository";
 import { createExpenseRepository } from "@/modules/expenses/data/repository";
 import { createReportsRepository } from "@/modules/reports/data/repository";
