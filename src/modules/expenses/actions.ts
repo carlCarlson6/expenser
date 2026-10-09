@@ -39,7 +39,7 @@ export async function createExpenseAction(
   try {
     const actor = await getActor();
     await createExpense(createRepos(getDb()), actor, parsed.data);
-    revalidatePath("/", "layout");
+    revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
     return toResult(error);
@@ -61,7 +61,7 @@ export async function updateExpenseAction(
   try {
     const actor = await getActor();
     await updateExpense(createRepos(getDb()), actor, { id, ...parsed.data });
-    revalidatePath("/", "layout");
+    revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
     return toResult(error);
@@ -77,7 +77,7 @@ export async function deleteExpenseAction(
   try {
     const actor = await getActor();
     await deleteExpense(createRepos(getDb()), actor, { id });
-    revalidatePath("/", "layout");
+    revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
     return toResult(error);

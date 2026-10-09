@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Expenser
 
-## Getting Started
+Expense tracker. Next.js (App Router) full stack, Clerk auth, Postgres (Docker locally / Neon in production), Drizzle ORM, Tailwind, i18n (Spanish default, English).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Concern | Choice |
+| --- | --- |
+| Framework | Next.js 16 (App Router, RSC, Server Actions) |
+| Auth | Clerk (`@clerk/nextjs`), profiles synced lazily on first read |
+| Database | Postgres 16 via Docker (local) / Neon (production) |
+| ORM | Drizzle (`drizzle-orm`, `drizzle-kit`) |
+| Styling | Tailwind CSS v4 |
+| Charts | Recharts |
+| Validation | Zod (v4) |
+| i18n | next-intl (`es` default, `en`), locale-prefixed routes |
+| Tests | Vitest (domain unit tests + optional live-DB integration tests) |
+
+## Architecture
+
+Vertical slices with a query/command (CQS) core. Each slice owns its table, its
+domain rules and its UI; Server Actions are a thin transport layer on top.
+
+```
+src/
+├── proxy.ts                  # Clerk auth + next-intl locale routing (Next 16 renamed middleware → proxy)
+├── i18n/                     # routing config, navigation helpers, request config
+├── messages/                 # es.json / en.json translation catalogs
+├── app/[locale]/             # routes only: layout + (auth) + (app) pages
+├── modules/
+│   ├── users/                # profile provisioning, settings (locale, currency)
+│   ├── categories/           # category CRUD, default seed, delete→reassign
+│   ├── expenses/             # expense CRUD, paginated filtered list
+│   └── reports/              # read-only aggregations (time buckets, category sums)
+│       └── <slice>/
+│           ├── domain/       # commands/ (writes) · queries/ (reads) · validators/ · types
+│           ├── data/         # drizzle table + repository (+ interfaces)
+│           ├── actions.ts    # Server Actions: FormData → zod → auth → command
+│           └── ui/           # components
+└── shared/
+    ├── db/                   # driver factory (postgres-js local / neon-http prod), repo composition
+    ├── money/                # cents parsing/formatting, date formatting
+    ├── auth/                 # Clerk helpers
+    ├── ui/                   # presentational primitives (button, field, modal, action-form)
+    └── testing/              # in-memory fake repositories for unit tests
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Rules of the road:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Commands mutate, queries read.** Both take repositories + an `Actor`
+  (the caller's profile) and enforce business rules; they never read cookies
+  or auth directly.
+- **Actions are thin**: parse `FormData` → zod → `auth()` → command/query →
+  `revalidatePath("/[locale]", "layout")` → typed `ActionResult`.
+- **Server Actions must always authorize**: every domain function scopes reads
+  and writes by `actor.profileId`, so cross-user access is impossible even if a
+  route is hit directly.
+- **Money is integer cents** everywhere; only `shared/money` converts/format.
+- **Database** driver is picked from `DATABASE_URL` (`neon.tech` → Neon HTTP).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Key flows
 
-## Learn More
+- **First sign-in**: `getProfile` (query) finds no profile → creates one and
+  seeds the 10 default categories (last one protected: the "Other" bucket).
+  No Clerk webhooks needed for the MVP.
+- **Deleting a category**: runs in a transaction — expenses are reassigned to
+  the protected category, then the category is deleted. The protected category
+  cannot be deleted or renamed into conflict.
+- **Language**: stored on the profile; the URL prefix drives rendering
+  (Spanish is unprefixed). If they disagree (e.g. new device), the app layout
+  redirects once to the profile's locale.
 
-To learn more about Next.js, take a look at the following resources:
+## Getting started
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Requirements: Node 20.9+, Docker (for local Postgres).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+cp .env.example .env.local   # add your real Clerk keys
+npm run db:up                # start Postgres on :5432
+npm run db:migrate           # apply migrations
+npm run dev                  # http://localhost:3000 (redirects to /sign-in)
+```
 
-## Deploy on Vercel
+### Clerk setup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Create an app at <https://dashboard.clerk.com>.
+2. Copy **Publishable key** and **Secret key** into `.env.local`
+   (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`).
+3. Leave sign-in/sign-up enabled (the app hosts both routes under `[locale]`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Without valid keys every protected route returns 500 — that is Clerk rejecting
+the placeholder keys, not an app error.
+
+### Production (Vercel + Neon)
+
+1. Create a Neon database, set `DATABASE_URL` in the Vercel project.
+   Hostnames containing `neon.tech` automatically use the Neon HTTP driver.
+2. Set the Clerk keys in Vercel (same names as above).
+3. `npm run db:migrate` locally against the Neon URL (or run it in CI) — the
+   driver factory supports it unchanged.
+
+## Scripts
+
+| Script | Purpose |
+| --- | --- |
+| `dev` / `build` / `start` | Next.js |
+| `lint` / `typecheck` | ESLint, `tsc --noEmit` |
+| `test` | Vitest domain unit tests (no DB needed) |
+| `test:db` | Live integration tests against the local Postgres (needs `db:up`) |
+| `db:up` / `db:down` | Start/stop the Postgres container |
+| `db:generate` / `db:migrate` | Drizzle migration generate/apply |
+| `db:studio` | Drizzle Studio |
+
+## Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk frontend key |
+| `CLERK_SECRET_KEY` | Clerk backend key |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` |
+
+## Known MVP limitations
+
+- Changing the currency does not convert already-recorded expenses.
+- Expenses have day granularity (no time of day).
+- Lazy profile provisioning runs a read+insert on first request per user; a
+  Clerk webhook is the production-hardening path if that matters at scale.

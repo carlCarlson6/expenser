@@ -26,7 +26,7 @@ export async function updateSettingsAction(
   try {
     const actor = await getActor();
     await updateSettings(createRepos(getDb()), actor, parsed.data);
-    revalidatePath("/", "layout");
+    revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
     if (error instanceof DomainError) return fail(error.code);

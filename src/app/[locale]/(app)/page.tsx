@@ -8,6 +8,7 @@ import { TrendChart } from "@/modules/reports/ui/trend-chart";
 import { getActor } from "@/modules/users/actor";
 import { getDb } from "@/shared/db/client";
 import { createRepos } from "@/shared/db/repos";
+import { formatDate } from "@/shared/money/date";
 import { formatCents } from "@/shared/money/money";
 
 function Card({
@@ -117,7 +118,9 @@ export default async function DashboardPage({
             {data.recent.map((e) => (
               <li key={e.id} className="flex items-center justify-between py-2 text-sm">
                 <div className="flex items-center gap-3">
-                  <span className="text-zinc-500">{e.spentAt}</span>
+                  <span className="text-zinc-500">
+                    {formatDate(e.spentAt, locale)}
+                  </span>
                   <span className="text-zinc-900">{e.description || "—"}</span>
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
                     {e.categoryName}

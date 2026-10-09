@@ -32,7 +32,7 @@ export async function createCategoryAction(
   try {
     const actor = await getActor();
     await createCategory(createRepos(getDb()), actor, parsed.data);
-    revalidatePath("/", "layout");
+    revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
     return toResult(error);
@@ -59,7 +59,7 @@ export async function renameCategoryAction(
       id,
       name: parsed.data.name,
     });
-    revalidatePath("/", "layout");
+    revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
     return toResult(error);
@@ -78,7 +78,7 @@ export async function deleteCategoryAction(
     await getDb().transaction(async (tx) => {
       await deleteCategory(createRepos(tx as unknown as Db), actor, { id });
     });
-    revalidatePath("/", "layout");
+    revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
     return toResult(error);
