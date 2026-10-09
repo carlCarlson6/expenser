@@ -11,6 +11,8 @@ const KNOWN_KEYS = new Set([
   "invalidColor",
   "notFound",
   "protectedCategory",
+  "bulkEmpty",
+  "tooManyRows",
   "generic",
 ]);
 

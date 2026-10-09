@@ -8,6 +8,7 @@
     "confirm": "Confirmar",
     "close": "Cerrar",
     "actions": "Acciones",
+    "remove": "Quitar",
     "loading": "Cargando…",
     "previous": "Anterior",
     "next": "Siguiente",
@@ -87,7 +88,12 @@
     "empty": "No hay gastos que coincidan con los filtros.",
     "created": "Gasto creado",
     "updated": "Gasto actualizado",
-    "deleted": "Gasto eliminado"
+    "deleted": "Gasto eliminado",
+    "bulkAdd": "Añadir varios",
+    "bulkTitle": "Añadir varios gastos",
+    "bulkRowLabel": "Gasto {index}",
+    "bulkAddRow": "Añadir fila",
+    "bulkSubmit": "Añadir todos"
   },
   "categories": {
     "title": "Categorías",
@@ -132,6 +138,8 @@
     "nameTaken": "Ya existe una categoría con ese nombre",
     "notFound": "No encontrado",
     "protectedCategory": "Esta categoría no se puede eliminar",
+    "bulkEmpty": "Añade al menos un gasto",
+    "tooManyRows": "Demasiados gastos en un solo envío",
     "generic": "Ha ocurrido un error. Inténtalo de nuevo."
   }
 }

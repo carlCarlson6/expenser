@@ -8,6 +8,7 @@
     "confirm": "Confirm",
     "close": "Close",
     "actions": "Actions",
+    "remove": "Remove",
     "loading": "Loading…",
     "previous": "Previous",
     "next": "Next",
@@ -87,7 +88,12 @@
     "empty": "No expenses match the filters.",
     "created": "Expense created",
     "updated": "Expense updated",
-    "deleted": "Expense deleted"
+    "deleted": "Expense deleted",
+    "bulkAdd": "Add several",
+    "bulkTitle": "Add several expenses",
+    "bulkRowLabel": "Expense {index}",
+    "bulkAddRow": "Add row",
+    "bulkSubmit": "Add all"
   },
   "categories": {
     "title": "Categories",
@@ -132,6 +138,8 @@
     "nameTaken": "A category with that name already exists",
     "notFound": "Not found",
     "protectedCategory": "This category cannot be deleted",
+    "bulkEmpty": "Add at least one expense",
+    "tooManyRows": "Too many expenses in a single submission",
     "generic": "Something went wrong. Please try again."
   }
 }

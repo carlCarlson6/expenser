@@ -29,6 +29,8 @@ export type ExpenseWithCategory = Expense & {
 export interface ExpenseRepository {
   findById(profileId: string, id: string): Promise<Expense | null>;
   insert(profileId: string, input: ExpenseInput): Promise<Expense>;
+  /** Inserts a batch in one statement. Returns rows inserted. */
+  insertMany(profileId: string, inputs: ExpenseInput[]): Promise<number>;
   update(
     profileId: string,
     id: string,
@@ -75,6 +77,23 @@ export function createExpenseRepository(db: Db): ExpenseRepository {
         })
         .returning();
       return rows[0];
+    },
+
+    async insertMany(profileId, inputs) {
+      if (inputs.length === 0) return 0;
+      const rows = await db
+        .insert(expenses)
+        .values(
+          inputs.map((input) => ({
+            profileId,
+            categoryId: input.categoryId,
+            amountCents: input.amountCents,
+            description: input.description ?? null,
+            spentAt: input.spentAt,
+          })),
+        )
+        .returning({ id: expenses.id });
+      return rows.length;
     },
 
     async update(profileId, id, input) {

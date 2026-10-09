@@ -6,6 +6,7 @@ import type { Actor } from "@/modules/users/domain/types";
 import { createFakeRepos } from "@/shared/testing/fake-repos";
 
 import { createExpense } from "@/modules/expenses/domain/commands/create-expense";
+import { createExpensesBulk } from "@/modules/expenses/domain/commands/create-expenses-bulk";
 import { deleteExpense } from "@/modules/expenses/domain/commands/delete-expense";
 import { updateExpense } from "@/modules/expenses/domain/commands/update-expense";
 
@@ -54,6 +55,65 @@ describe("createExpense", () => {
         categoryId: someoneElsesCategory.id,
       }),
     ).rejects.toMatchObject({ code: "notFound" });
+  });
+});
+
+describe("createExpensesBulk", () => {
+  const rows = [
+    { amount: 1299, categoryId: food.id, description: "Pan", spentAt: "2026-10-01" },
+    { amount: 450, categoryId: food.id, spentAt: "2026-10-02" },
+  ];
+
+  it("creates every row of a batch", async () => {
+    const { repos, stores } = createFakeRepos({ categories: [food] });
+    const inserted = await createExpensesBulk(repos, actor, rows);
+    expect(inserted).toBe(2);
+    expect(stores.expenses.size).toBe(2);
+  });
+
+  it("resolves a repeated category only once per batch", async () => {
+    const { repos } = createFakeRepos({ categories: [food] });
+    let lookups = 0;
+    const spy = {
+      ...repos.categories,
+      findById: (profileId: string, categoryId: string) => {
+        lookups++;
+        return repos.categories.findById(profileId, categoryId);
+      },
+    };
+    await createExpensesBulk({ ...repos, categories: spy }, actor, rows);
+    expect(lookups).toBe(1);
+  });
+
+  it("writes nothing when one row points at a foreign category", async () => {
+    const { repos, stores } = createFakeRepos({
+      categories: [food, someoneElsesCategory],
+    });
+    await expect(
+      createExpensesBulk(repos, actor, [
+        ...rows,
+        { amount: 700, categoryId: someoneElsesCategory.id, spentAt: "2026-10-03" },
+      ]),
+    ).rejects.toMatchObject({ code: "notFound" });
+    expect(stores.expenses.size).toBe(0);
+  });
+
+  it("rejects an empty batch", async () => {
+    const { repos } = createFakeRepos({ categories: [food] });
+    await expect(createExpensesBulk(repos, actor, [])).rejects.toMatchObject({
+      code: "bulkEmpty",
+    });
+  });
+
+  it("routes the write through the injected transaction runner", async () => {
+    const { repos, stores } = createFakeRepos({ categories: [food] });
+    let ran = false;
+    await createExpensesBulk(repos, actor, rows, async (fn) => {
+      ran = true;
+      return fn(repos);
+    });
+    expect(ran).toBe(true);
+    expect(stores.expenses.size).toBe(2);
   });
 });
 

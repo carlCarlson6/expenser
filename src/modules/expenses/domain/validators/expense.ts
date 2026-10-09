@@ -28,6 +28,37 @@ export const expenseInputSchema = z.object({
 
 export type ExpenseInput = z.infer<typeof expenseInputSchema>;
 
+/** Upper bound on one bulk submission, enforced by the action. */
+export const MAX_BULK_ROWS = 50;
+
+/** A whole batch goes through the same per-row rules as a single expense. */
+export const bulkExpensesSchema = z.object({
+  rows: z.array(expenseInputSchema),
+});
+
+export type BulkExpensesInput = z.infer<typeof bulkExpensesSchema>;
+
+/**
+ * Flattens a failed batch parse into `rows.<index>.<field>` keys, so a form can
+ * resolve each row's messages through the same `fieldErrors` map the
+ * single-expense form already uses.
+ */
+export function toBulkFieldErrors(error: z.ZodError): Record<string, string[]> {
+  const fieldErrors: Record<string, string[]> = {};
+  for (const issue of error.issues) {
+    // Zod reports paths relative to the wrapped object: ["rows", 1, "amount"].
+    // Drop the wrapper so only a row-scoped pair (index, field) is left.
+    const path = issue.path[0] === "rows" ? issue.path.slice(1) : issue.path;
+    const [index, field] = path;
+    const key =
+      typeof index === "number" && typeof field === "string"
+        ? `rows.${index}.${field}`
+        : "rows";
+    (fieldErrors[key] ??= []).push(issue.message);
+  }
+  return fieldErrors;
+}
+
 export const expenseFiltersSchema = z.object({
   categoryId: z.uuid().optional(),
   from: z

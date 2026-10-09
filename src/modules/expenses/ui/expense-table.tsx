@@ -10,6 +10,7 @@ import { Modal } from "@/shared/ui/modal";
 import { CategoryBadge } from "@/modules/reports/ui/category-legend";
 
 import { deleteExpenseAction } from "../actions";
+import { ExpensesBulkModal } from "./expense-bulk-form";
 import { ExpenseFormModal, type ExpenseFormValues } from "./expense-form";
 
 type Row = {
@@ -34,6 +35,7 @@ export function ExpenseTable({
   const t = useTranslations("expenses");
   const tCommon = useTranslations("common");
   const [formOpen, setFormOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<
     (ExpenseFormValues & { id: string }) | null
   >(null);
@@ -44,7 +46,10 @@ export function ExpenseTable({
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        <Button variant="secondary" onClick={() => setBulkOpen(true)}>
+          {t("bulkAdd")}
+        </Button>
         <Button
           onClick={() => {
             setEditing(null);
@@ -130,6 +135,13 @@ export function ExpenseTable({
         categories={categories}
         today={today}
         initial={editing}
+      />
+
+      <ExpensesBulkModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        categories={categories}
+        today={today}
       />
 
       <Modal

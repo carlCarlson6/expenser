@@ -148,6 +148,10 @@ export function createFakeExpenseRepository(initial: Expense[] = []) {
       store.set(expense.id, expense);
       return expense;
     },
+    async insertMany(profileId, inputs: ExpenseInput[]) {
+      for (const input of inputs) await repo.insert(profileId, input);
+      return inputs.length;
+    },
     async update(profileId, expenseId, input: ExpenseInput) {
       const e = await repo.findById(profileId, expenseId);
       if (!e) return null;
