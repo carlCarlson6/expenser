@@ -43,7 +43,7 @@ src/
 │           ├── actions.ts    # Server Actions: FormData → zod → auth → command
 │           └── ui/           # components
 └── shared/
-    ├── db/                   # driver factory (postgres-js local / neon-http prod), repo composition
+    ├── db/                   # driver factory (postgres-js local / neon-websocket prod), repo composition
     ├── money/                # cents parsing/formatting, date formatting
     ├── auth/                 # Clerk helpers + admin key check
     ├── ui/                   # presentational primitives (button, field, modal, action-form)
@@ -72,7 +72,9 @@ Rules of the road:
   and writes by `actor.profileId`, so cross-user access is impossible even if a
   route is hit directly.
 - **Money is integer cents** everywhere; only `shared/money` converts/format.
-- **Database** driver is picked from `DATABASE_URL` (`neon.tech` → Neon HTTP).
+- **Database** driver is picked from `DATABASE_URL` (`neon.tech` → Neon over
+  WebSockets). Neon also has an HTTP driver, but it cannot open a transaction,
+  and deleting a category / seeding a profile both need one.
 - **Tests live in `/test`**, mirroring the `/src` tree (`test/modules/expenses/…`
   tests `src/modules/expenses/…`). Nothing under `src/` is test-only. Tests
   import production code through the `@/` alias, never through relative paths,
@@ -126,7 +128,9 @@ the placeholder keys, not an app error.
 ### Production (Vercel + Neon)
 
 1. Create a Neon database, set `DATABASE_URL` in the Vercel project.
-   Hostnames containing `neon.tech` automatically use the Neon HTTP driver.
+   Hostnames containing `neon.tech` automatically use the Neon WebSocket
+   driver. That driver needs a global `WebSocket`, so the runtime must be
+   Node 22+ (Vercel's default; `npm run build` already requires it).
 2. Set the Clerk keys in Vercel (same names as above).
 3. `npm run db:migrate` locally against the Neon URL (or run it in CI) — the
    driver factory supports it unchanged.
@@ -171,7 +175,7 @@ curl -X POST localhost:3000/api/admin -H "x-admin-key: $ADMIN_API_KEY" \
 
 | Command | Params | What it does |
 | --- | --- | --- |
-| `migrate` | `folder?` | Applies pending Drizzle migrations from `./drizzle`, using the same driver as the app (postgres-js / Neon HTTP). Returns `{driver, total, applied}`. |
+| `migrate` | `folder?` | Applies pending Drizzle migrations from `./drizzle`, using the same driver as the app (postgres-js / Neon WebSocket). Returns `{driver, total, applied}`. |
 | `seed-dev-user` | `clerkUserId?`, `force?`, `months?` | Provisions the profile and fills it with plausible expenses. `clerkUserId` falls back to `SEED_CLERK_USER_ID`; refuses a non-empty profile unless `force` (409). |
 
 Responses are `{ok: true, command, result}`; errors are `{ok: false, error}`

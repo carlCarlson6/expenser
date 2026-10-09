@@ -74,11 +74,18 @@ export async function runMigrations(
   const total = countMigrationFiles(folder);
 
   if (isNeonUrl(url)) {
-    const db = drizzleNeon(neon(url), { schema });
-    const before = await countApplied(() => db.execute(sql.raw(COUNT_APPLIED)));
-    await migrateNeon(db, { migrationsFolder: folder });
-    const after = await countApplied(() => db.execute(sql.raw(COUNT_APPLIED)));
-    return { driver: "neon-http", folder, total, applied: after - before };
+    const pool = new Pool({ connectionString: url });
+    try {
+      // Drizzle's pg migrator wraps the migration files in a transaction, so
+      // Neon needs the WebSocket driver here, not the HTTP one.
+      const db = drizzleNeonServerless(pool, { schema });
+      const before = await countApplied(() => db.execute(sql.raw(COUNT_APPLIED)));
+      await migrateNeonServerless(db, { migrationsFolder: folder });
+      const after = await countApplied(() => db.execute(sql.raw(COUNT_APPLIED)));
+      return { driver: "neon-websocket", folder, total, applied: after - before };
+    } finally {
+      await pool.end();
+    }
   }
 
   const client = postgres(url);
