@@ -27,7 +27,7 @@ export async function getProfile(
   const profile = await repos.profiles.create({
     clerkUserId,
     locale,
-    currency: "USD",
+    currency: "EUR",
   });
 
   const hasCategories =

@@ -1,7 +1,7 @@
 /**
  * Applies the Drizzle migrations in `./drizzle` to the database behind
  * `DATABASE_URL`, using the same driver the app uses (postgres-js locally,
- * Neon HTTP in production).
+ * Neon over WebSockets in production).
  *
  * Equivalent to `npm run db:migrate`, except it runs in-process so the admin
  * endpoint can trigger it on a deployed environment.
@@ -10,17 +10,18 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { neon } from "@neondatabase/serverless";
+import { Pool } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
-import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
-import { migrate as migrateNeon } from "drizzle-orm/neon-http/migrator";
+import { drizzle as drizzleNeonServerless } from "drizzle-orm/neon-serverless";
+import { migrate as migrateNeonServerless } from "drizzle-orm/neon-serverless/migrator";
 import { drizzle as drizzlePostgresJs } from "drizzle-orm/postgres-js";
 import { migrate as migratePostgresJs } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
+import { isNeonUrl } from "@/shared/db/client";
 import * as schema from "@/shared/db/schema";
 
-export type MigrationDriver = "neon-http" | "postgres-js";
+export type MigrationDriver = "neon-websocket" | "postgres-js";
 
 export type RunMigrationsInput = {
   /** Folder holding the generated .sql files. Defaults to `./drizzle`. */
@@ -38,10 +39,6 @@ export type RunMigrationsResult = {
 
 /** Drizzle's own bookkeeping table; used only to report the outcome. */
 const COUNT_APPLIED = `select count(*)::int as count from drizzle.__drizzle_migrations`;
-
-function isNeonUrl(url: string): boolean {
-  return url.includes("neon.tech") || url.includes("neon.build");
-}
 
 function countMigrationFiles(folder: string): number {
   if (!existsSync(folder)) {
