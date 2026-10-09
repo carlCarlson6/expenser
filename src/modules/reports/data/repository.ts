@@ -15,6 +15,13 @@ export type CategorySum = {
 
 export type PeriodSum = { bucket: string; totalCents: number };
 
+/** A bucket's total split across the categories that contributed to it. */
+export type PeriodCategorySum = PeriodSum & {
+  categoryId: string;
+  name: string;
+  color: string;
+};
+
 export interface ReportsRepository {
   totalBetween(
     profileId: string,
@@ -35,6 +42,26 @@ export interface ReportsRepository {
     granularity: Granularity,
     categoryId?: string,
   ): Promise<PeriodSum[]>;
+  sumByPeriodAndCategory(
+    profileId: string,
+    from: string,
+    toExclusive: string,
+    granularity: Granularity,
+    categoryId?: string,
+  ): Promise<PeriodCategorySum[]>;
+}
+
+/** Whitelisted date_trunc units — never interpolate raw user input. */
+const TRUNC_UNITS: Record<Granularity, string> = {
+  day: "day",
+  week: "week",
+  month: "month",
+};
+
+/** SQL expression bucketing `spentAt` to the start date of its period. */
+function bucketExpr(granularity: Granularity) {
+  const unit = TRUNC_UNITS[granularity];
+  return sql<string>`to_char(date_trunc(${sql.raw(`'${unit}'`)}, ${expenses.spentAt}::timestamp), 'YYYY-MM-DD')`;
 }
 
 export function createReportsRepository(db: Db): ReportsRepository {
@@ -81,21 +108,37 @@ export function createReportsRepository(db: Db): ReportsRepository {
     },
 
     async sumByPeriod(profileId, from, toExclusive, granularity, categoryId) {
-      // Whitelist the date_trunc unit — never interpolate raw user input.
-      const units: Record<Granularity, string> = {
-        day: "day",
-        week: "week",
-        month: "month",
-      };
-      const unit = units[granularity];
       const rows = await db
         .select({
-          bucket: sql<string>`to_char(date_trunc(${sql.raw(`'${unit}'`)}, ${expenses.spentAt}::timestamp), 'YYYY-MM-DD')`,
+          bucket: bucketExpr(granularity),
           totalCents: sql<number>`coalesce(sum(${expenses.amountCents}), 0)::int`,
         })
         .from(expenses)
         .where(conditions(profileId, from, toExclusive, categoryId))
         .groupBy(sql`1`)
+        .orderBy(sql`1`);
+      return rows;
+    },
+
+    async sumByPeriodAndCategory(
+      profileId,
+      from,
+      toExclusive,
+      granularity,
+      categoryId,
+    ) {
+      const rows = await db
+        .select({
+          bucket: bucketExpr(granularity),
+          categoryId: categories.id,
+          name: categories.name,
+          color: categories.color,
+          totalCents: sql<number>`coalesce(sum(${expenses.amountCents}), 0)::int`,
+        })
+        .from(expenses)
+        .innerJoin(categories, eq(categories.id, expenses.categoryId))
+        .where(conditions(profileId, from, toExclusive, categoryId))
+        .groupBy(sql`1, 2`)
         .orderBy(sql`1`);
       return rows;
     },

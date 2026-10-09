@@ -55,6 +55,29 @@ export function bucketsBetween(
   return keys;
 }
 
+/** Inclusive last day of a window that ends exclusively at `toExclusive`. */
+export function dayBefore(iso: string): string {
+  return toISODate(addDays(parseISODate(iso), -1));
+}
+
+/**
+ * The window of equal length ending the instant the current one starts.
+ * `to` is the last (inclusive) day, so it lines up with the `bucketsBetween`
+ * convention; `toExclusive` is the half-open bound the repositories take.
+ */
+export function previousRange(
+  from: string,
+  toExclusive: string,
+): { from: string; toExclusive: string; toInclusive: string } {
+  const days =
+    Math.round(
+      (parseISODate(toExclusive).getTime() - parseISODate(from).getTime()) /
+        86_400_000,
+    ) || 1;
+  const prevFrom = toISODate(addDays(parseISODate(from), -days));
+  return { from: prevFrom, toExclusive: from, toInclusive: dayBefore(from) };
+}
+
 /** [from, toExclusive) for the calendar month containing `today`. */
 export function monthRange(today: Date): { from: string; toExclusive: string } {
   const first = new Date(today.getFullYear(), today.getMonth(), 1);

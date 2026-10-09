@@ -12,7 +12,12 @@ const isPublicRoute = createRouteMatcher([
   "/:locale/sign-up(.*)",
 ]);
 
+// API routes authenticate on their own (see src/app/api/admin/route.ts) and
+// live outside [locale], so next-intl must not rewrite them.
+const isApiRoute = createRouteMatcher(["/api(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
+  if (isApiRoute(req)) return;
   if (!isPublicRoute(req)) {
     await auth.protect();
   }

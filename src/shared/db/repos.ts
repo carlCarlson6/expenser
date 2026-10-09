@@ -17,3 +17,15 @@ export function createRepos(db: Db) {
 }
 
 export type Repos = ReturnType<typeof createRepos>;
+
+/**
+ * Runs `fn` inside a database transaction, exposing repositories bound to it.
+ * Domain code stays driver-agnostic: callers that need atomicity pass this as
+ * the transaction runner (see `delete-category`, `seed-dev-user`).
+ */
+export async function runInTransaction<T>(
+  db: Db,
+  fn: (repos: Repos) => Promise<T>,
+): Promise<T> {
+  return db.transaction((tx) => fn(createRepos(tx as unknown as Db)));
+}

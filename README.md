@@ -26,12 +26,17 @@ src/
 ├── proxy.ts                  # Clerk auth + next-intl locale routing (Next 16 renamed middleware → proxy)
 ├── i18n/                     # routing config, navigation helpers, request config
 ├── messages/                 # es.json / en.json translation catalogs
-├── app/[locale]/             # routes only: layout + (auth) + (app) pages
+├── app/
+│   ├── [locale]/             # routes only: layout + (auth) + (app) pages
+│   └── api/admin/            # POST /api/admin — key-guarded command endpoint
 ├── modules/
 │   ├── users/                # profile provisioning, settings (locale, currency)
 │   ├── categories/           # category CRUD, default seed, delete→reassign
 │   ├── expenses/             # expense CRUD, paginated filtered list
-│   └── reports/              # read-only aggregations powering the dashboard
+│   ├── reports/              # read-only aggregations powering the dashboard
+│   └── admin/                # cross-cutting: admin commands (migrate, seed-dev-user)
+│       ├── commands.ts       # command registry (zod params + runner)
+│       └── domain/           # commands/ (writes) · seed-rules (deterministic dev data)
 │       └── <slice>/
 │           ├── domain/       # commands/ (writes) · queries/ (reads) · validators/ · types
 │           ├── data/         # drizzle table + repository (+ interfaces)
@@ -40,7 +45,7 @@ src/
 └── shared/
     ├── db/                   # driver factory (postgres-js local / neon-http prod), repo composition
     ├── money/                # cents parsing/formatting, date formatting
-    ├── auth/                 # Clerk helpers
+    ├── auth/                 # Clerk helpers + admin key check
     ├── ui/                   # presentational primitives (button, field, modal, action-form)
     └── testing/              # in-memory fake repositories for unit tests
 
@@ -137,6 +142,8 @@ the placeholder keys, not an app error.
 | `db:up` / `db:down` | Start/stop the Postgres container |
 | `db:generate` / `db:migrate` | Drizzle migration generate/apply |
 | `db:studio` | Drizzle Studio |
+| `db:seed` | Seed a dev profile straight against the database |
+| `admin` | Call the admin endpoint (`npm run admin -- migrate`) |
 
 ## Environment variables
 
@@ -147,6 +154,37 @@ the placeholder keys, not an app error.
 | `CLERK_SECRET_KEY` | Clerk backend key |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` |
+| `ADMIN_API_KEY` | Key for `POST /api/admin`; unset disables it (503) |
+| `ADMIN_API_URL` | Base URL used by `npm run admin` (default `http://localhost:3000`) |
+| `SEED_CLERK_USER_ID` | Default clerk user for the seed command |
+
+### Admin API
+
+`POST /api/admin` runs one **command** picked from the JSON body. It is
+authenticated with the `x-admin-key` header (constant-time compared), not with
+Clerk — `src/proxy.ts` keeps `/api/*` out of the locale/auth chain.
+
+```bash
+curl -X POST localhost:3000/api/admin -H "x-admin-key: $ADMIN_API_KEY" \
+  -H 'content-type: application/json' -d '{"command":"migrate"}'
+```
+
+| Command | Params | What it does |
+| --- | --- | --- |
+| `migrate` | `folder?` | Applies pending Drizzle migrations from `./drizzle`, using the same driver as the app (postgres-js / Neon HTTP). Returns `{driver, total, applied}`. |
+| `seed-dev-user` | `clerkUserId?`, `force?`, `months?` | Provisions the profile and fills it with plausible expenses. `clerkUserId` falls back to `SEED_CLERK_USER_ID`; refuses a non-empty profile unless `force` (409). |
+
+Responses are `{ok: true, command, result}`; errors are `{ok: false, error}`
+with `401` (bad key), `503` (no `ADMIN_API_KEY`), `400` (bad body/params),
+`404` (unknown command) or `409` (`alreadySeeded`).
+
+`npm run admin -- <command>` is a thin client over the same endpoint. To add a
+command: drop it in `src/modules/admin/domain/commands/`, give it a zod schema
+and register it in `src/modules/admin/commands.ts` — the route, the CLI and the
+error mapping need no changes.
+
+Caveat: `migrate` reads `./drizzle` from disk, which serverless platforms do
+not bundle by default — on Vercel keep using `npm run db:migrate` from CI.
 
 ## Known MVP limitations
 

@@ -46,6 +46,13 @@ const paths: Record<ChartType, React.ReactNode> = {
       />
     </>
   ),
+  stacked: (
+    <>
+      <rect x="2" y="9.5" width="3" height="4.5" rx="0.5" />
+      <rect x="6.5" y="7" width="3" height="7" rx="0.5" opacity="0.75" />
+      <rect x="11" y="4" width="3" height="10" rx="0.5" opacity="0.5" />
+    </>
+  ),
   donut: (
     <>
       <path
@@ -60,6 +67,23 @@ const paths: Record<ChartType, React.ReactNode> = {
         fill="currentColor"
         opacity="0.55"
       />
+    </>
+  ),
+  heatmap: (
+    <>
+      {[0, 1, 2, 3].map((col) =>
+        [0, 1].map((row) => (
+          <rect
+            key={`${col}-${row}`}
+            x={2 + col * 3.25}
+            y={3 + row * 5}
+            width="2.5"
+            height="4"
+            rx="0.75"
+            opacity={0.35 + col * 0.2}
+          />
+        )),
+      )}
     </>
   ),
 };

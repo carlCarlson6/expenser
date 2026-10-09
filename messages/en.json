@@ -55,7 +55,16 @@
     "recentExpenses": "Recent expenses",
     "viewAll": "View all",
     "noExpenses": "No expenses yet.",
-    "noData": "No data for the selected period."
+    "noData": "No data for the selected period.",
+    "stackedChart": "Stacked",
+    "heatmapChart": "Calendar",
+    "movingAverage": "Moving average",
+    "cumulative": "Cumulative",
+    "calendar": "Spending by day",
+    "otherCategories": "Other",
+    "weekdays": "M,T,W,T,F,S,S",
+    "less": "Less",
+    "more": "More"
   },
   "expenses": {
     "title": "Expenses",

@@ -41,6 +41,8 @@ export interface ExpenseRepository {
     fromCategoryId: string,
     toCategoryId: string,
   ): Promise<number>;
+  /** How many expenses the profile has; used to guard destructive commands. */
+  countByProfile(profileId: string): Promise<number>;
   list(
     profileId: string,
     filters: ExpenseFilters,
@@ -106,6 +108,14 @@ export function createExpenseRepository(db: Db): ExpenseRepository {
         )
         .returning({ id: expenses.id });
       return rows.length;
+    },
+
+    async countByProfile(profileId) {
+      const rows = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(expenses)
+        .where(eq(expenses.profileId, profileId));
+      return rows[0]?.count ?? 0;
     },
 
     async list(profileId, filters) {

@@ -176,6 +176,9 @@ export function createFakeExpenseRepository(initial: Expense[] = []) {
       }
       return moved;
     },
+    async countByProfile(profileId) {
+      return [...store.values()].filter((e) => e.profileId === profileId).length;
+    },
     async list(profileId, filters) {
       const all = [...store.values()].filter(
         (e) => e.profileId === profileId,

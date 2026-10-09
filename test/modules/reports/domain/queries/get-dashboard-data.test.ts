@@ -23,21 +23,72 @@ type TotalBetween = (
   categoryId?: string,
 ) => Promise<{ totalCents: number; count: number }>;
 
+type SumByPeriod = (
+  profileId: string,
+  from: string,
+  toExclusive: string,
+  granularity: "day" | "week" | "month",
+  categoryId?: string,
+) => Promise<{ bucket: string; totalCents: number }[]>;
+
 function repoStub(
   current: { totalCents: number; count: number },
   previous: { totalCents: number; count: number },
+  periodData: {
+    current?: { bucket: string; totalCents: number }[];
+    previous?: { bucket: string; totalCents: number }[];
+  } = {},
 ) {
   const totalBetween: TotalBetween = async (_profileId, from) =>
     from === DEFAULT_FROM ? current : previous;
+
+  // The query now asks for the current window, the previous one, and (when
+  // the buckets are not already daily) a daily series. `toExclusive` tells
+  // the first two apart: only the previous window ends where this one starts.
+  const sumByPeriod: SumByPeriod = async (
+    _profileId,
+    from,
+    toExclusive,
+    granularity,
+  ) => {
+    if (from === DEFAULT_FROM) {
+      return periodData.current ?? [{ bucket: "2026-10-01", totalCents: 1500 }];
+    }
+    if (toExclusive === DEFAULT_FROM) {
+      return (
+        periodData.previous ?? [{ bucket: "2026-09-22", totalCents: 500 }]
+      );
+    }
+    // A third window means the daily side series.
+    return granularity === "day"
+      ? [{ bucket: DEFAULT_FROM, totalCents: 1500 }]
+      : [];
+  };
 
   return {
     reports: {
       totalBetween,
       sumByCategory: async () => [
-        { categoryId: "c1", name: "Supermercado", totalCents: 1000 },
-        { categoryId: "c2", name: "Ocio", totalCents: 500 },
+        { categoryId: "c1", name: "Supermercado", color: "#111111", totalCents: 1000 },
+        { categoryId: "c2", name: "Ocio", color: "#222222", totalCents: 500 },
       ],
-      sumByPeriod: async () => [{ bucket: "2026-10-01", totalCents: 1500 }],
+      sumByPeriod,
+      sumByPeriodAndCategory: async () => [
+        {
+          bucket: "2026-10-01",
+          categoryId: "c1",
+          name: "Supermercado",
+          color: "#111111",
+          totalCents: 1000,
+        },
+        {
+          bucket: "2026-10-01",
+          categoryId: "c2",
+          name: "Ocio",
+          color: "#222222",
+          totalCents: 500,
+        },
+      ],
     },
     expenses: {
       list: async () => ({ items: [], totalCount: 0 }),
@@ -170,5 +221,48 @@ describe("getDashboardData", () => {
     await run({ granularity: "month", categoryId: "cat-1" }, repos);
     expect(seen.length).toBeGreaterThan(0);
     expect(seen.every((c) => c === "cat-1")).toBe(true);
+  });
+
+  it("buckets the previous window for the comparison overlay", async () => {
+    const data = await run({});
+    // The previous window is 9 days ending the day before Oct 1.
+    expect(data.previousBuckets).toHaveLength(9);
+    expect(data.previousBuckets[0].bucket).toBe("2026-09-22");
+    expect(data.previousBuckets[0].totalCents).toBe(500);
+    expect(data.previousBuckets.at(-1)!.totalCents).toBe(0);
+  });
+
+  it("keeps the current and previous buckets the same length on a preset", async () => {
+    for (const granularity of ["day", "week", "month"] as const) {
+      const data = await run({ granularity });
+      expect(data.previousBuckets).toHaveLength(data.buckets.length);
+    }
+  });
+
+  it("fills the daily series from the buckets when already grouped by day", async () => {
+    const data = await run({ granularity: "day" });
+    expect(data.daily.map((d) => d.date)).toEqual(
+      data.buckets.map((b) => b.bucket),
+    );
+    expect(data.daily[0].totalCents).toBe(1500);
+  });
+
+  it("queries a separate daily series when the buckets are coarser", async () => {
+    // The heatmap needs days regardless of the grouping, and the chart shape
+    // must not drive what the query aggregates — so the series is always there.
+    const data = await run({ granularity: "week" });
+    expect(data.daily).toHaveLength(9);
+    expect(data.buckets.length).toBeLessThan(9);
+    expect(data.daily[0]).toEqual({ date: "2026-10-01", totalCents: 1500 });
+    // Gaps the daily query did not report come back as zeroes.
+    expect(data.daily.at(-1)!.totalCents).toBe(0);
+  });
+
+  it("builds the stacked matrix over the same buckets", async () => {
+    const data = await run({ granularity: "day" });
+    expect(data.stacked.buckets).toHaveLength(data.buckets.length);
+    expect(data.stacked.categories.map((c) => c.categoryId)).toEqual(["c1", "c2"]);
+    expect(data.stacked.buckets[0].byCategory).toEqual({ c1: 1000, c2: 500 });
+    expect(data.stacked.buckets[1].byCategory).toEqual({ c1: 0, c2: 0 });
   });
 });

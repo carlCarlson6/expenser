@@ -34,7 +34,9 @@ const CHART_KEYS = {
   line: "lineChart",
   area: "areaChart",
   cumulative: "cumulativeChart",
+  stacked: "stackedChart",
   donut: "donutChart",
+  heatmap: "heatmapChart",
 } as const;
 
 export function DashboardFilters({

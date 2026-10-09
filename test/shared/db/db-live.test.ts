@@ -145,6 +145,61 @@ describe.skipIf(!live)("database (live)", () => {
     expect(data.byCategory[0].name).toBeTruthy();
   });
 
+  it("builds a stacked matrix and a daily series over the same window", async () => {
+    const repos = createRepos(db);
+    const data = await getDashboardData(
+      repos,
+      actor,
+      { from: "2026-09-01", to: "2026-10-31", granularity: "month" },
+      new Date(2026, 9, 9),
+    );
+
+    // Largest first: the 100.00 rent beats the 17.99 of October groceries.
+    expect(data.stacked.categories[0].categoryId).toBe(otherId);
+    expect(data.stacked.categories[0].totalCents).toBe(10000);
+    expect(data.stacked.buckets).toHaveLength(2);
+
+    const september = data.stacked.buckets.find(
+      (b) => b.bucket === "2026-09-01",
+    )!;
+    expect(september.byCategory[otherId]).toBe(10000);
+    expect(september.byCategory[foodId]).toBe(0);
+
+    const october = data.stacked.buckets.find(
+      (b) => b.bucket === "2026-10-01",
+    )!;
+    expect(october.byCategory[foodId]).toBe(1799);
+    expect(october.byCategory[otherId]).toBe(0);
+
+    // Monthly buckets still come with a daily series for the heatmap.
+    expect(data.daily).toHaveLength(61);
+    expect(data.daily.find((d) => d.date === "2026-10-01")?.totalCents).toBe(
+      1799,
+    );
+    expect(data.daily.find((d) => d.date === "2026-09-15")?.totalCents).toBe(0);
+  });
+
+  it("buckets the previous window so the chart can overlay it", async () => {
+    const repos = createRepos(db);
+    const data = await getDashboardData(
+      repos,
+      actor,
+      { from: "2026-09-10", to: "2026-10-09", granularity: "day" },
+      new Date(2026, 9, 9),
+    );
+
+    expect(data.totalCents).toBe(1799);
+    // The 30 days before the window hold the September rent.
+    expect(data.previousTotalCents).toBe(10000);
+    expect(data.previousBuckets).toHaveLength(data.buckets.length);
+    expect(
+      data.previousBuckets.find((b) => b.bucket === "2026-09-01")?.totalCents,
+    ).toBe(10000);
+    expect(
+      data.previousBuckets.find((b) => b.bucket === "2026-08-11")?.totalCents,
+    ).toBe(0);
+  });
+
   it("reassigns expenses when deleting a category", async () => {
     await db.transaction(async (tx) => {
       await deleteCategory(createRepos(tx as unknown as Db), actor, {

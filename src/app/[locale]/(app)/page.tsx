@@ -16,10 +16,18 @@ import {
   CategoryLegend,
 } from "@/modules/reports/ui/category-legend";
 import { CategoryDonut } from "@/modules/reports/ui/category-donut";
-import { parseChartType } from "@/modules/reports/ui/chart";
+import {
+  buildTrendSeries,
+  movingAverageWindow,
+  parseChartType,
+  type ChartPoint,
+  type TrendVariant,
+} from "@/modules/reports/ui/chart";
 import { DashboardFilters } from "@/modules/reports/ui/dashboard-filters";
+import { CalendarHeatmap } from "@/modules/reports/ui/heatmap";
 import { bucketLabel } from "@/modules/reports/ui/labels";
 import { ShareBar } from "@/modules/reports/ui/share-bar";
+import { StackedChart } from "@/modules/reports/ui/stacked-chart";
 import { TrendChart } from "@/modules/reports/ui/trend-chart";
 import { getActor } from "@/modules/users/actor";
 import { getDb } from "@/shared/db/client";
@@ -64,6 +72,25 @@ export default async function DashboardPage({
   const card = "rounded-xl border border-zinc-200 bg-white p-5";
   // Bars wear the filtered category's color; without a filter they stay neutral.
   const activeCategory = categories.find((c) => c.id === data.categoryId);
+
+  // Chart data is prepared here, on the server: the panel components stay
+  // presentational and the transforms stay pure and unit-tested.
+  const points: ChartPoint[] = data.buckets.map((b) => ({
+    label: bucketLabel(b.bucket, data.granularity, locale),
+    value: b.totalCents / 100,
+  }));
+  const baseline: ChartPoint[] = data.previousBuckets.map((b) => ({
+    label: bucketLabel(b.bucket, data.granularity, locale),
+    value: b.totalCents / 100,
+  }));
+  const trendVariant: TrendVariant =
+    chart === "donut" || chart === "heatmap" ? "bar" : chart;
+  const series = buildTrendSeries(
+    points,
+    baseline,
+    trendVariant,
+    movingAverageWindow(data.granularity),
+  );
 
   return (
     <section className="space-y-4">
@@ -123,47 +150,74 @@ export default async function DashboardPage({
 
       <div className={card}>
         <h2 className="mb-3 text-sm font-medium text-zinc-500">
-          {chart === "donut" ? t("byCategory") : t("overTime")}
+          {chart === "donut" || chart === "stacked"
+            ? t("byCategory")
+            : chart === "heatmap"
+              ? t("calendar")
+              : t("overTime")}
         </h2>
-        {(chart === "donut"
+        {data.totalCents === 0 ||
+        (chart === "donut" || chart === "stacked"
           ? data.byCategory.length === 0
-          : data.buckets.length === 0) || data.totalCents === 0 ? (
+          : data.buckets.length === 0) ? (
           <p className="py-12 text-center text-sm text-zinc-500">
             {t("noData")}
           </p>
+        ) : chart === "donut" ? (
+          <CategoryDonut
+            items={data.byCategory.map((c) => ({
+              name: c.name,
+              color: c.color,
+              totalCents: c.totalCents,
+            }))}
+            currency={actor.currency}
+            locale={locale}
+          />
+        ) : chart === "stacked" ? (
+          <StackedChart
+            data={data.stacked.buckets.map((b) => ({
+              label: bucketLabel(b.bucket, data.granularity, locale),
+              // Recharts stacks whatever numeric keys the row carries.
+              ...Object.fromEntries(
+                Object.entries(b.byCategory).map(([k, v]) => [k, v / 100]),
+              ),
+            }))}
+            categories={data.stacked.categories}
+            otherName={t("otherCategories")}
+            currency={actor.currency}
+            locale={locale}
+          />
+        ) : chart === "heatmap" ? (
+          <CalendarHeatmap
+            days={data.daily}
+            currency={actor.currency}
+            locale={locale}
+            labels={{
+              weekdays: t.raw("weekdays").split(","),
+              less: t("less"),
+              more: t("more"),
+            }}
+          />
         ) : (
-          chart === "donut" ? (
-            <CategoryDonut
-              items={data.byCategory.map((c) => ({
-                name: c.name,
-                color: c.color,
-                totalCents: c.totalCents,
-              }))}
-              currency={actor.currency}
-              locale={locale}
-            />
-          ) : (
-            <TrendChart
-              variant={chart}
-              data={data.buckets.map((b) => ({
-                label: bucketLabel(b.bucket, data.granularity, locale),
-                value: b.totalCents / 100,
-              }))}
-              currency={actor.currency}
-              locale={locale}
-              color={activeCategory?.color}
-            />
-          )
+          <TrendChart
+            variant={trendVariant}
+            data={series}
+            currency={actor.currency}
+            locale={locale}
+            color={activeCategory?.color}
+          />
         )}
-        <CategoryLegend
-          items={data.byCategory.slice(0, 8).map((c) => ({
-            name: c.name,
-            color: c.color,
-            totalCents: c.totalCents,
-          }))}
-          currency={actor.currency}
-          locale={locale}
-        />
+        {chart !== "heatmap" && (
+          <CategoryLegend
+            items={data.byCategory.slice(0, 8).map((c) => ({
+              name: c.name,
+              color: c.color,
+              totalCents: c.totalCents,
+            }))}
+            currency={actor.currency}
+            locale={locale}
+          />
+        )}
       </div>
 
       <div className={card}>

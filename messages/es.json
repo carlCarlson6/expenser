@@ -55,7 +55,16 @@
     "recentExpenses": "Gastos recientes",
     "viewAll": "Ver todos",
     "noExpenses": "Aún no hay gastos.",
-    "noData": "No hay datos para el periodo seleccionado."
+    "noData": "No hay datos para el periodo seleccionado.",
+    "stackedChart": "Apiladas",
+    "heatmapChart": "Calendario",
+    "movingAverage": "Media móvil",
+    "cumulative": "Acumulado",
+    "calendar": "Gasto por día",
+    "otherCategories": "Otras",
+    "weekdays": "L,M,X,J,V,S,D",
+    "less": "Menos",
+    "more": "Más"
   },
   "expenses": {
     "title": "Gastos",
