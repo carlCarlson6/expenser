@@ -6,7 +6,7 @@ import {
   monthRange,
   parseISODate,
   toISODate,
-} from "./dates";
+} from "@/modules/reports/domain/dates";
 
 describe("bucketsBetween", () => {
   it("generates daily buckets", () => {

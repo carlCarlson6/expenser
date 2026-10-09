@@ -5,9 +5,9 @@ import type { Expense } from "@/modules/expenses/data/schema";
 import type { Actor } from "@/modules/users/domain/types";
 import { createFakeRepos } from "@/shared/testing/fake-repos";
 
-import { createExpense } from "./create-expense";
-import { deleteExpense } from "./delete-expense";
-import { updateExpense } from "./update-expense";
+import { createExpense } from "@/modules/expenses/domain/commands/create-expense";
+import { deleteExpense } from "@/modules/expenses/domain/commands/delete-expense";
+import { updateExpense } from "@/modules/expenses/domain/commands/update-expense";
 
 const actor: Actor = {
   profileId: "p1",
@@ -20,6 +20,7 @@ const food: Category = {
   id: "cat-food",
   profileId: "p1",
   name: "Supermercado",
+  color: "#22c55e",
   isProtected: false,
   createdAt: new Date(),
 };
@@ -28,6 +29,7 @@ const someoneElsesCategory: Category = {
   id: "cat-foreign",
   profileId: "p2",
   name: "Ajena",
+  color: "#ef4444",
   isProtected: false,
   createdAt: new Date(),
 };

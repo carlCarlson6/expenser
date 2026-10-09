@@ -21,7 +21,10 @@ export type ExpenseFilters = {
   pageSize: number;
 };
 
-export type ExpenseWithCategory = Expense & { categoryName: string };
+export type ExpenseWithCategory = Expense & {
+  categoryName: string;
+  categoryColor: string;
+};
 
 export interface ExpenseRepository {
   findById(profileId: string, id: string): Promise<Expense | null>;
@@ -119,7 +122,11 @@ export function createExpenseRepository(db: Db): ExpenseRepository {
 
       const [items, countRows] = await Promise.all([
         db
-          .select({ expense: expenses, categoryName: categories.name })
+          .select({
+            expense: expenses,
+            categoryName: categories.name,
+            categoryColor: categories.color,
+          })
           .from(expenses)
           .innerJoin(categories, eq(categories.id, expenses.categoryId))
           .where(where)
@@ -133,7 +140,11 @@ export function createExpenseRepository(db: Db): ExpenseRepository {
       ]);
 
       return {
-        items: items.map((r) => ({ ...r.expense, categoryName: r.categoryName })),
+        items: items.map((r) => ({
+          ...r.expense,
+          categoryName: r.categoryName,
+          categoryColor: r.categoryColor,
+        })),
         totalCount: countRows[0]?.count ?? 0,
       };
     },

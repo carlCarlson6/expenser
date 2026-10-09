@@ -12,6 +12,7 @@ import { DomainError } from "../users/domain/types";
 import { createCategory } from "./domain/commands/create-category";
 import { deleteCategory } from "./domain/commands/delete-category";
 import { renameCategory } from "./domain/commands/rename-category";
+import { setCategoryColor } from "./domain/commands/set-category-color";
 import { categoryNameSchema } from "./domain/validators/category";
 
 function toResult(error: unknown): ActionResult {
@@ -46,6 +47,7 @@ export async function renameCategoryAction(
   const id = formData.get("id");
   const parsed = categoryNameSchema.safeParse({
     name: formData.get("name"),
+    color: formData.get("color") ?? undefined,
   });
   if (typeof id !== "string" || !parsed.success) {
     return fail(
@@ -58,6 +60,32 @@ export async function renameCategoryAction(
     await renameCategory(createRepos(getDb()), actor, {
       id,
       name: parsed.data.name,
+      color: parsed.data.color,
+    });
+    revalidatePath("/[locale]", "layout");
+    return ok;
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+export async function setCategoryColorAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const id = formData.get("id");
+  const parsed = categoryNameSchema.safeParse({
+    name: "color-only",
+    color: formData.get("color"),
+  });
+  if (typeof id !== "string" || !parsed.success) {
+    return fail("generic");
+  }
+  try {
+    const actor = await getActor();
+    await setCategoryColor(createRepos(getDb()), actor, {
+      id,
+      color: parsed.data.color!,
     });
     revalidatePath("/[locale]", "layout");
     return ok;

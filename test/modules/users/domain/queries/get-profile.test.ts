@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Profile } from "@/modules/users/data/schema";
 import { createFakeRepos } from "@/shared/testing/fake-repos";
 
-import { getProfile } from "./get-profile";
+import { getProfile } from "@/modules/users/domain/queries/get-profile";
 
 const existing: Profile = {
   id: "p1",

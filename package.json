@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "LIVE_DB=1 vitest run src/shared/db/db-live.test.ts",
+    "test:db": "LIVE_DB=1 vitest run test/shared/db/db-live.test.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",

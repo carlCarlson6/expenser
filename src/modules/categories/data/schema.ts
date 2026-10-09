@@ -17,6 +17,8 @@ export const categories = pgTable(
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** Hex color used to identify the category across the UI. */
+    color: text("color").notNull().default("#6366f1"),
     /** Protected categories (the "Other" bucket) cannot be deleted — they
      *  receive the expenses of deleted categories. */
     isProtected: boolean("is_protected").notNull().default(false),

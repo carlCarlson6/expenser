@@ -1,6 +1,7 @@
 import type { Actor } from "@/modules/users/domain/types";
 import { DomainError } from "@/modules/users/domain/types";
 
+import { nextColor } from "../../data/palette";
 import type { CategoryRepository } from "../../data/repository";
 import type { Category } from "../../data/schema";
 import type { CategoryNameInput } from "../validators/category";
@@ -17,5 +18,15 @@ export async function createCategory(
     input.name,
   );
   if (existing) throw new DomainError("nameTaken");
-  return repos.categories.create(actor.profileId, input.name);
+
+  // Use the user's choice, else the first palette color not yet taken.
+  let color = input.color;
+  if (!color) {
+    const used = (await repos.categories.listByProfile(actor.profileId)).map(
+      (c) => c.color,
+    );
+    color = nextColor(used);
+  }
+
+  return repos.categories.create(actor.profileId, input.name, color);
 }

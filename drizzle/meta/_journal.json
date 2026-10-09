@@ -8,6 +8,13 @@
       "when": 1791571218796,
       "tag": "0000_first_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791574527682,
+      "tag": "0001_wide_silhouette",
+      "breakpoints": true
     }
   ]
 }

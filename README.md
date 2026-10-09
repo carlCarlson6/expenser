@@ -43,6 +43,17 @@ src/
     ├── auth/                 # Clerk helpers
     ├── ui/                   # presentational primitives (button, field, modal, action-form)
     └── testing/              # in-memory fake repositories for unit tests
+
+test/                        # mirrors the src/ structure; only *.test.ts files
+├── modules/
+│   ├── users/domain/queries/get-profile.test.ts
+│   ├── categories/data/palette.test.ts
+│   ├── categories/domain/commands/categories.test.ts
+│   ├── expenses/domain/commands/expenses.test.ts
+│   └── reports/domain/{dates.test.ts, queries/get-dashboard-data.test.ts}
+└── shared/
+    ├── db/db-live.test.ts    # opt-in integration test (LIVE_DB=1)
+    └── money/money.test.ts
 ```
 
 Rules of the road:
@@ -57,6 +68,10 @@ Rules of the road:
   route is hit directly.
 - **Money is integer cents** everywhere; only `shared/money` converts/format.
 - **Database** driver is picked from `DATABASE_URL` (`neon.tech` → Neon HTTP).
+- **Tests live in `/test`**, mirroring the `/src` tree (`test/modules/expenses/…`
+  tests `src/modules/expenses/…`). Nothing under `src/` is test-only. Tests
+  import production code through the `@/` alias, never through relative paths,
+  so moving a test never breaks its imports.
 
 ### Key flows
 
@@ -110,8 +125,8 @@ the placeholder keys, not an app error.
 | --- | --- |
 | `dev` / `build` / `start` | Next.js |
 | `lint` / `typecheck` | ESLint, `tsc --noEmit` |
-| `test` | Vitest domain unit tests (no DB needed) |
-| `test:db` | Live integration tests against the local Postgres (needs `db:up`) |
+| `test` / `test:watch` | Vitest domain unit tests from `test/` (no DB needed) |
+| `test:db` | Live integration tests (`test/shared/db/db-live.test.ts`) against the local Postgres (needs `db:up`) |
 | `db:up` / `db:down` | Start/stop the Postgres container |
 | `db:generate` / `db:migrate` | Drizzle migration generate/apply |
 | `db:studio` | Drizzle Studio |

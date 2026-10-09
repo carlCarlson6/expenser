@@ -10,8 +10,8 @@ import { getProfile } from "@/modules/users/domain/queries/get-profile";
 import { profiles } from "@/modules/users/data/schema";
 import type { Actor } from "@/modules/users/domain/types";
 
-import { getDb, type Db } from "./client";
-import { createRepos } from "./repos";
+import { getDb, type Db } from "@/shared/db/client";
+import { createRepos } from "@/shared/db/repos";
 
 /**
  * Integration test against a real Postgres (docker compose via `npm run

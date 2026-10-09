@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getDashboardData } from "./get-dashboard-data";
+import { getDashboardData } from "@/modules/reports/domain/queries/get-dashboard-data";
 
 const actor = {
   profileId: "p1",

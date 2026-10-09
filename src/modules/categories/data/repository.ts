@@ -16,13 +16,20 @@ export interface CategoryRepository {
   findById(profileId: string, id: string): Promise<Category | null>;
   findProtected(profileId: string): Promise<Category | null>;
   findByName(profileId: string, name: string): Promise<Category | null>;
-  create(profileId: string, name: string): Promise<Category>;
+  create(profileId: string, name: string, color: string): Promise<Category>;
   createMany(
     profileId: string,
     names: string[],
     protectedIndex: number,
+    colorFor: (index: number) => string,
   ): Promise<void>;
-  rename(profileId: string, id: string, name: string): Promise<Category | null>;
+  rename(
+    profileId: string,
+    id: string,
+    name: string,
+    color: string,
+  ): Promise<Category | null>;
+  setColor(profileId: string, id: string, color: string): Promise<Category | null>;
   remove(profileId: string, id: string): Promise<void>;
 }
 
@@ -95,28 +102,38 @@ export function createCategoryRepository(db: Db): CategoryRepository {
       return rows[0] ?? null;
     },
 
-    async create(profileId, name) {
+    async create(profileId, name, color) {
       const rows = await db
         .insert(categories)
-        .values({ profileId, name })
+        .values({ profileId, name, color })
         .returning();
       return rows[0];
     },
 
-    async createMany(profileId, names, protectedIndex) {
+    async createMany(profileId, names, protectedIndex, colorFor) {
       await db.insert(categories).values(
         names.map((name, i) => ({
           profileId,
           name,
+          color: colorFor(i),
           isProtected: i === protectedIndex,
         })),
       );
     },
 
-    async rename(profileId, id, name) {
+    async rename(profileId, id, name, color) {
       const rows = await db
         .update(categories)
-        .set({ name })
+        .set({ name, color })
+        .where(owned(profileId, id))
+        .returning();
+      return rows[0] ?? null;
+    },
+
+    async setColor(profileId, id, color) {
+      const rows = await db
+        .update(categories)
+        .set({ color })
         .where(owned(profileId, id))
         .returning();
       return rows[0] ?? null;

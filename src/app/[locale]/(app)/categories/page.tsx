@@ -32,6 +32,7 @@ export default async function CategoriesPage({
         categories={categories.map((c) => ({
           id: c.id,
           name: c.name,
+          color: c.color,
           isProtected: c.isProtected,
           expenseCount: c.expenseCount,
           total: formatCents(c.totalCents, actor.currency, locale),

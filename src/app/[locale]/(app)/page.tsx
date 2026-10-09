@@ -7,6 +7,11 @@ import {
   getDashboardData,
   presetRange,
 } from "@/modules/reports/domain/queries/get-dashboard-data";
+import {
+  CategoryBadge,
+  CategoryDot,
+  CategoryLegend,
+} from "@/modules/reports/ui/category-legend";
 import { DashboardFilters } from "@/modules/reports/ui/dashboard-filters";
 import { bucketLabel } from "@/modules/reports/ui/labels";
 import { ShareBar } from "@/modules/reports/ui/share-bar";
@@ -128,6 +133,15 @@ export default async function DashboardPage({
             locale={locale}
           />
         )}
+        <CategoryLegend
+          items={data.byCategory.slice(0, 8).map((c) => ({
+            name: c.name,
+            color: c.color,
+            totalCents: c.totalCents,
+          }))}
+          currency={actor.currency}
+          locale={locale}
+        />
       </div>
 
       <div className={card}>
@@ -155,13 +169,18 @@ export default async function DashboardPage({
                   key={c.categoryId}
                   className="border-b border-zinc-100 last:border-0"
                 >
-                  <td className="py-2 pr-2 text-zinc-700">{c.name}</td>
+                  <td className="py-2 pr-2 text-zinc-700">
+                    <span className="inline-flex items-center gap-2">
+                      <CategoryDot color={c.color} />
+                      {c.name}
+                    </span>
+                  </td>
                   <td className="py-2 pr-2 text-right font-medium whitespace-nowrap">
                     {fmt(c.totalCents)}
                   </td>
                   <td className="py-2">
                     <div className="flex items-center gap-2">
-                      <ShareBar share={c.share} />
+                      <ShareBar share={c.share} color={c.color} />
                       <span className="w-10 text-right text-xs text-zinc-500">
                         {Math.round(c.share * 100)}%
                       </span>
@@ -194,9 +213,10 @@ export default async function DashboardPage({
                     {formatDate(e.spentAt, locale)}
                   </span>
                   <span className="text-zinc-900">{e.description || "—"}</span>
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
-                    {e.categoryName}
-                  </span>
+                  <CategoryBadge
+                    color={e.categoryColor}
+                    name={e.categoryName}
+                  />
                 </div>
                 <span className="font-medium whitespace-nowrap">
                   {fmt(e.amountCents)}

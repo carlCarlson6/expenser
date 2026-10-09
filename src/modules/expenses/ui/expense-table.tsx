@@ -7,6 +7,8 @@ import { ActionForm } from "@/shared/ui/action-form";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
 
+import { CategoryBadge } from "@/modules/reports/ui/category-legend";
+
 import { deleteExpenseAction } from "../actions";
 import { ExpenseFormModal, type ExpenseFormValues } from "./expense-form";
 
@@ -15,6 +17,7 @@ type Row = {
   spentAt: string;
   description: string;
   categoryName: string;
+  categoryColor: string;
   amount: string;
   edit: ExpenseFormValues;
 };
@@ -87,9 +90,10 @@ export function ExpenseTable({
                   {r.description || "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700">
-                    {r.categoryName}
-                  </span>
+                  <CategoryBadge
+                    color={r.categoryColor}
+                    name={r.categoryName}
+                  />
                 </td>
                 <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
                   {r.amount}

@@ -77,6 +77,7 @@ export default async function ExpensesPage({
           spentAt: formatDate(e.spentAt, locale),
           description: e.description ?? "",
           categoryName: e.categoryName,
+          categoryColor: e.categoryColor,
           amount: formatCents(e.amountCents, actor.currency, locale),
           edit: {
             amount: centsToInput(e.amountCents),

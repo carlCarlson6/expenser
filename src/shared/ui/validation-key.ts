@@ -8,6 +8,7 @@ const KNOWN_KEYS = new Set([
   "descriptionTooLong",
   "nameTooLong",
   "nameTaken",
+  "invalidColor",
   "notFound",
   "protectedCategory",
   "generic",

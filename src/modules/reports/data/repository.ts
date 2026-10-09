@@ -9,6 +9,7 @@ import type { Granularity } from "../domain/dates";
 export type CategorySum = {
   categoryId: string;
   name: string;
+  color: string;
   totalCents: number;
 };
 
@@ -69,12 +70,13 @@ export function createReportsRepository(db: Db): ReportsRepository {
         .select({
           categoryId: categories.id,
           name: categories.name,
+          color: categories.color,
           totalCents: sql<number>`coalesce(sum(${expenses.amountCents}), 0)::int`,
         })
         .from(expenses)
         .innerJoin(categories, eq(categories.id, expenses.categoryId))
         .where(conditions(profileId, from, toExclusive, categoryId))
-        .groupBy(categories.id, categories.name)
+        .groupBy(categories.id, categories.name, categories.color)
         .orderBy(sql`sum(${expenses.amountCents}) desc`);
     },
 

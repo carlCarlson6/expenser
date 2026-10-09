@@ -22,6 +22,7 @@ type Repos = {
 export type CategoryShare = {
   categoryId: string;
   name: string;
+  color: string;
   totalCents: number;
   share: number;
 };

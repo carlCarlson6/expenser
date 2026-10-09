@@ -80,33 +80,42 @@ export function createFakeCategoryRepository(initial: Category[] = []) {
         ) ?? null
       );
     },
-    async create(profileId, name) {
+    async create(profileId, name, color) {
       const category: Category = {
         id: id(),
         profileId,
         name,
+        color,
         isProtected: false,
         createdAt: new Date(),
       };
       store.set(category.id, category);
       return category;
     },
-    async createMany(profileId, names, protectedIndex) {
+    async createMany(profileId, names, protectedIndex, colorFor) {
       names.forEach((name, i) => {
         const category: Category = {
           id: id(),
           profileId,
           name,
+          color: colorFor(i),
           isProtected: i === protectedIndex,
           createdAt: new Date(),
         };
         store.set(category.id, category);
       });
     },
-    async rename(profileId, categoryId, name) {
+    async rename(profileId, categoryId, name, color) {
       const c = await repo.findById(profileId, categoryId);
       if (!c) return null;
-      const updated = { ...c, name };
+      const updated = { ...c, name, color };
+      store.set(categoryId, updated);
+      return updated;
+    },
+    async setColor(profileId, categoryId, color) {
+      const c = await repo.findById(profileId, categoryId);
+      if (!c) return null;
+      const updated = { ...c, color };
       store.set(categoryId, updated);
       return updated;
     },
@@ -174,6 +183,7 @@ export function createFakeExpenseRepository(initial: Expense[] = []) {
       const items: ExpenseWithCategory[] = all.map((e) => ({
         ...e,
         categoryName: "fake",
+        categoryColor: "#6366f1",
       }));
       void filters;
       return { items, totalCount: items.length };

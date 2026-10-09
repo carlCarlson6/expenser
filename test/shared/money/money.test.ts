@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { centsToInput, formatCents, parseAmountToCents } from "./money";
+import {
+  centsToInput,
+  formatCents,
+  parseAmountToCents,
+} from "@/shared/money/money";
 
 describe("parseAmountToCents", () => {
   it.each([

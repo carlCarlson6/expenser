@@ -1,5 +1,8 @@
 import type { CategoryRepository } from "@/modules/categories/data/repository";
-import { defaultCategoryNames } from "@/modules/categories/data/defaults";
+import {
+  defaultCategoryNames,
+  defaultColorFor,
+} from "@/modules/categories/data/defaults";
 
 import type { ProfileRepository } from "../../data/repository";
 import type { Profile } from "../../data/schema";
@@ -31,7 +34,12 @@ export async function getProfile(
     (await repos.categories.listByProfile(profile.id)).length > 0;
   if (!hasCategories) {
     const names = defaultCategoryNames(profile.locale || locale);
-    await repos.categories.createMany(profile.id, names, names.length - 1);
+    await repos.categories.createMany(
+      profile.id,
+      names,
+      names.length - 1,
+      defaultColorFor,
+    );
   }
   return profile;
 }
