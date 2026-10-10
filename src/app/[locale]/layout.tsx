@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { enUS, esES } from "@clerk/localizations";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 
@@ -59,6 +61,8 @@ export default async function LocaleLayout({
             {children}
           </NextIntlClientProvider>
         </ClerkProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
