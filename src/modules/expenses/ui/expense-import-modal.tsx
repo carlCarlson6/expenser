@@ -706,13 +706,15 @@ export function ExpenseImportModal({
 
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs text-zinc-500">
-                    {tooManyRows
-                      ? t("import.tooManyRows", { max: MAX_IMPORT_ROWS })
-                      : invalidCount > 0
-                        ? t("import.fixErrors")
-                        : checkingDuplicates
-                          ? t("import.checkingDuplicates")
-                          : ""}
+                    {rows.length === 0
+                      ? t("import.fileEmpty")
+                      : tooManyRows
+                        ? t("import.tooManyRows", { max: MAX_IMPORT_ROWS })
+                        : invalidCount > 0
+                          ? t("import.fixErrors")
+                          : checkingDuplicates
+                            ? t("import.checkingDuplicates")
+                            : ""}
                   </p>
                   <div className="flex gap-2">
                     <Button variant="secondary" type="button" onClick={close}>
