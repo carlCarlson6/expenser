@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getProfile } from "@/modules/users/domain/queries/get-profile";
 
-import { createTestDb } from "@test/shared/db/fixtures";
+import { createTestDb } from "@test/integration/shared/db/fixtures";
 
 const { repos, uniqueClerkId, trackProfile } = createTestDb();
 

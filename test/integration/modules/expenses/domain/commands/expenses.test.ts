@@ -9,7 +9,7 @@ import { updateExpense } from "@/modules/expenses/domain/commands/update-expense
 
 import { runInTransaction } from "@/shared/db/repos";
 
-import { categoryNamed, createTestDb } from "@test/shared/db/fixtures";
+import { categoryNamed, createTestDb } from "@test/integration/shared/db/fixtures";
 
 const { db, repos, createActor } = createTestDb();
 

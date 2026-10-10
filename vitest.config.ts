@@ -17,11 +17,27 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "node",
-    include: ["test/**/*.test.ts"],
-    // Every run gets an ephemeral Testcontainers Postgres (Docker required).
-    globalSetup: ["./test/setup/global-db.ts"],
-    // Points DATABASE_URL at the container inside each worker.
-    setupFiles: ["./test/setup/db-env.ts"],
+    projects: [
+      {
+        // Pure logic; no database, no Docker.
+        extends: true,
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["test/unit/**/*.test.ts"],
+        },
+      },
+      {
+        // Real repositories against an ephemeral Testcontainers Postgres.
+        extends: true,
+        test: {
+          name: "integration",
+          environment: "node",
+          include: ["test/integration/**/*.test.ts"],
+          globalSetup: ["./test/setup/global-db.ts"],
+          setupFiles: ["./test/setup/db-env.ts"],
+        },
+      },
+    ],
   },
 });

@@ -3,9 +3,8 @@ import { describe, expect, it } from "vitest";
 import { createExpense } from "@/modules/expenses/domain/commands/create-expense";
 import { getDashboardData } from "@/modules/reports/domain/queries/get-dashboard-data";
 import type { DashboardFilters } from "@/modules/reports/domain/queries/get-dashboard-data";
-import { parsePreset, presetGranularity } from "@/modules/reports/domain/period";
 
-import { categoryNamed, createTestDb } from "@test/shared/db/fixtures";
+import { categoryNamed, createTestDb } from "@test/integration/shared/db/fixtures";
 
 const { repos, createActor } = createTestDb();
 
@@ -41,32 +40,6 @@ async function setup(expenses: SeedExpense[] = []) {
       getDashboardData(repos, actor, filters, today),
   };
 }
-
-describe("parsePreset", () => {
-  it("falls back to this month for missing or unknown values", () => {
-    expect(parsePreset(undefined)).toBe("month");
-    expect(parsePreset(["6m", "12m"])).toBe("month");
-    expect(parsePreset("yesterday")).toBe("month");
-  });
-
-  it("never returns custom, which is expressed as explicit dates", () => {
-    expect(parsePreset("custom")).toBe("month");
-  });
-
-  it("keeps a known preset", () => {
-    expect(parsePreset("12m")).toBe("12m");
-  });
-});
-
-describe("presetGranularity", () => {
-  it("keeps every preset above a single bucket", () => {
-    expect(presetGranularity("month")).toBe("day");
-    expect(presetGranularity("30d")).toBe("day");
-    expect(presetGranularity("6m")).toBe("week");
-    expect(presetGranularity("12m")).toBe("month");
-    expect(presetGranularity("custom")).toBe("day");
-  });
-});
 
 describe("getDashboardData", () => {
   it("defaults to this month, grouped by day", async () => {

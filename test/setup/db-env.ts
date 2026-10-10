@@ -8,8 +8,8 @@ declare module "vitest" {
 }
 
 /**
- * Runs in every worker before the test files load: points the app's lazy
- * `getDb()` at the container started by `global-db.ts` instead of whatever
- * `DATABASE_URL` in `.env.local` refers to.
+ * Runs in every integration worker before the test files load: points the
+ * app's lazy `getDb()` at the container started by `global-db.ts` instead of
+ * whatever `DATABASE_URL` in `.env.local` refers to.
  */
 process.env.DATABASE_URL = inject("dbUrl");

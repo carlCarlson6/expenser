@@ -4,9 +4,9 @@ import type { TestProject } from "vitest/node";
 import { runMigrations } from "@/modules/admin/domain/commands/run-migrations";
 
 /**
- * Boots an ephemeral Postgres (Docker via Testcontainers) for the test run and
- * applies the Drizzle migrations before any test file loads. Every test talks
- * to this instance — there are no fake repositories.
+ * Boots an ephemeral Postgres (Docker via Testcontainers) for the integration
+ * project and applies the Drizzle migrations before any test file loads. There
+ * are no fake repositories: those tests talk to this instance.
  *
  * The URI travels to the test workers through `project.provide("dbUrl", …)`;
  * `test/setup/db-env.ts` copies it into `process.env.DATABASE_URL` so the
@@ -37,7 +37,7 @@ async function startPostgres() {
       .start();
   } catch (error) {
     throw new Error(
-      "Could not start the Testcontainers Postgres — is Docker running? (`npm test` needs Docker)",
+      "Could not start the Testcontainers Postgres — is Docker running? (`npm test` / `test:integration` need Docker)",
       { cause: error },
     );
   }

@@ -9,7 +9,7 @@ import { DomainError } from "@/modules/users/domain/types";
 
 import { runInTransaction } from "@/shared/db/repos";
 
-import { createTestDb } from "@test/shared/db/fixtures";
+import { createTestDb } from "@test/integration/shared/db/fixtures";
 
 const { db, repos, createActor, uniqueClerkId, trackProfile } = createTestDb();
 

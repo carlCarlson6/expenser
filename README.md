@@ -2,6 +2,8 @@
 
 Expense tracker. Next.js (App Router) full stack, Clerk auth, Postgres (Docker locally / Neon in production), Drizzle ORM, Tailwind, i18n (Spanish default, English).
 
+[![CI](https://github.com/carlCarlson6/expenser/actions/workflows/ci.yml/badge.svg)](https://github.com/carlCarlson6/expenser/actions/workflows/ci.yml)
+
 ## Stack
 
 | Concern | Choice |
@@ -14,7 +16,7 @@ Expense tracker. Next.js (App Router) full stack, Clerk auth, Postgres (Docker l
 | Charts | Recharts |
 | Validation | Zod (v4) |
 | i18n | next-intl (`es` default, `en`), locale-prefixed routes |
-| Tests | Vitest, real repositories against a Testcontainers Postgres |
+| Tests | Vitest: pure unit suites + integration suites on a Testcontainers Postgres |
 
 ## Architecture
 
@@ -49,27 +51,40 @@ src/
     ├── ui/                   # presentational primitives (button, field, modal, action-form)
     └── testing/              # `server-only` stub used by the Vitest alias
 
-test/                        # mirrors the src/ structure; only *.test.ts files
-├── setup/                   # Testcontainers Postgres bootstrapped per run
-├── shared/db/fixtures.ts    # real-repo test context (fresh tenant per actor)
-├── modules/
-│   ├── users/domain/queries/get-profile.test.ts
-│   ├── categories/data/palette.test.ts
-│   ├── categories/domain/commands/categories.test.ts
-│   ├── expenses/domain/commands/expenses.test.ts
-│   └── reports/domain/{dates.test.ts, queries/get-dashboard-data.test.ts}
-└── shared/
-    ├── db/db-live.test.ts    # end-to-end flow on one tenant
-    └── money/money.test.ts
+test/                        # unit/ and integration/ mirror the src/ structure
+├── setup/                   # Vitest globalSetup: Testcontainers Postgres
+├── unit/
+│   ├── modules/
+│   │   ├── categories/data/palette.test.ts
+│   │   ├── categories/domain/validators/category.test.ts
+│   │   ├── expenses/domain/validators/expense.test.ts
+│   │   ├── reports/domain/dates.test.ts
+│   │   ├── reports/domain/period.test.ts
+│   │   ├── reports/domain/stacked.test.ts
+│   │   └── reports/ui/chart.test.ts
+│   └── shared/
+│       ├── auth/admin.test.ts
+│       └── money/money.test.ts
+└── integration/              # real repositories, real Postgres
+    ├── modules/
+    │   ├── admin/domain/commands/seed-dev-user.test.ts
+    │   ├── categories/domain/commands/categories.test.ts
+    │   ├── expenses/domain/commands/expenses.test.ts
+    │   ├── reports/domain/queries/get-dashboard-data.test.ts
+    │   └── users/domain/queries/get-profile.test.ts
+    └── shared/db/
+        ├── db-live.test.ts   # end-to-end flow on one tenant
+        └── fixtures.ts       # real-repo test context (fresh tenant per test)
 ```
 
-There are no fake repositories: every suite runs against the real Drizzle
-repositories on an ephemeral Postgres. `test/setup/global-db.ts` (a Vitest
-`globalSetup`) starts a `postgres:16-alpine` container and applies the
-migrations, and `test/setup/db-env.ts` points `DATABASE_URL` at it inside each
-worker. Tests isolate themselves by tenant: `test/shared/db/fixtures.ts`
-provisions a fresh profile (with its default categories) per test case and
-cleans them up afterwards.
+`unit/` holds pure logic (no database, no Docker); `integration/` holds the
+repo- and flow-level suites. There are no fake repositories: integration tests
+run against the real Drizzle repositories on an ephemeral Postgres.
+`test/setup/global-db.ts` (a Vitest `globalSetup` scoped to the integration
+project) starts a `postgres:16-alpine` container and applies the migrations,
+and `test/setup/db-env.ts` points `DATABASE_URL` at it inside each worker.
+Tests isolate themselves by tenant: `fixtures.ts` provisions a fresh profile
+(with its default categories) per test case and cleans them up afterwards.
 
 Rules of the road:
 
@@ -153,7 +168,9 @@ the placeholder keys, not an app error.
 | --- | --- |
 | `dev` / `build` / `start` | Next.js |
 | `lint` / `typecheck` | ESLint, `tsc --noEmit` |
-| `test` / `test:watch` | Vitest, real repositories against a Testcontainers Postgres (Docker required) |
+| `test` / `test:watch` | Vitest, both projects (unit + integration) |
+| `test:unit` | Pure unit tests from `test/unit/` (no Docker) |
+| `test:integration` | `test/integration/` suites against a Testcontainers Postgres (Docker required) |
 | `db:up` / `db:down` | Start/stop the Postgres container |
 | `db:generate` / `db:migrate` | Drizzle migration generate/apply |
 | `db:studio` | Drizzle Studio |
