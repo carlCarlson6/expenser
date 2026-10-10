@@ -1,180 +1,212 @@
-import { describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 
-import type { Category } from "@/modules/categories/data/schema";
-import type { Expense } from "@/modules/expenses/data/schema";
-import type { Actor } from "@/modules/users/domain/types";
-import { createFakeRepos } from "@/shared/testing/fake-repos";
+import { describe, expect, it } from "vitest";
 
 import { createExpense } from "@/modules/expenses/domain/commands/create-expense";
 import { createExpensesBulk } from "@/modules/expenses/domain/commands/create-expenses-bulk";
 import { deleteExpense } from "@/modules/expenses/domain/commands/delete-expense";
 import { updateExpense } from "@/modules/expenses/domain/commands/update-expense";
 
-const actor: Actor = {
-  profileId: "p1",
-  clerkUserId: "clerk-1",
-  locale: "es",
-  currency: "USD",
-};
+import { runInTransaction } from "@/shared/db/repos";
 
-const food: Category = {
-  id: "cat-food",
-  profileId: "p1",
-  name: "Supermercado",
-  color: "#22c55e",
-  isProtected: false,
-  createdAt: new Date(),
-};
+import { categoryNamed, createTestDb } from "@test/shared/db/fixtures";
 
-const someoneElsesCategory: Category = {
-  id: "cat-foreign",
-  profileId: "p2",
-  name: "Ajena",
-  color: "#ef4444",
-  isProtected: false,
-  createdAt: new Date(),
-};
-
-const input = { amount: 1299, categoryId: food.id, spentAt: "2026-10-09" };
+const { db, repos, createActor } = createTestDb();
 
 describe("createExpense", () => {
-  it("creates an expense in an owned category", async () => {
-    const { repos } = createFakeRepos({ categories: [food] });
-    const created = await createExpense(repos, actor, input);
+  it("persists an expense in an owned category", async () => {
+    const actor = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
+
+    const created = await createExpense(repos, actor, {
+      amount: 1299,
+      categoryId: food.id,
+      spentAt: "2026-10-09",
+    });
+
     expect(created.amountCents).toBe(1299);
-    expect(created.profileId).toBe("p1");
+    expect(created.profileId).toBe(actor.profileId);
+    expect(
+      await repos.expenses.findById(actor.profileId, created.id),
+    ).toMatchObject({ amountCents: 1299 });
   });
 
   it("rejects a category owned by another profile", async () => {
-    const { repos } = createFakeRepos({
-      categories: [food, someoneElsesCategory],
-    });
+    const actor = await createActor();
+    const stranger = await createActor();
+    const foreign = await categoryNamed(repos, stranger, "Supermercado");
+
     await expect(
       createExpense(repos, actor, {
-        ...input,
-        categoryId: someoneElsesCategory.id,
+        amount: 1299,
+        categoryId: foreign.id,
+        spentAt: "2026-10-09",
       }),
     ).rejects.toMatchObject({ code: "notFound" });
   });
 });
 
 describe("createExpensesBulk", () => {
-  const rows = [
-    { amount: 1299, categoryId: food.id, description: "Pan", spentAt: "2026-10-01" },
-    { amount: 450, categoryId: food.id, spentAt: "2026-10-02" },
-  ];
-
   it("creates every row of a batch", async () => {
-    const { repos, stores } = createFakeRepos({ categories: [food] });
-    const inserted = await createExpensesBulk(repos, actor, rows);
+    const actor = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
+
+    const inserted = await createExpensesBulk(repos, actor, [
+      {
+        amount: 1299,
+        categoryId: food.id,
+        description: "Pan",
+        spentAt: "2026-10-01",
+      },
+      { amount: 450, categoryId: food.id, spentAt: "2026-10-02" },
+    ]);
+
     expect(inserted).toBe(2);
-    expect(stores.expenses.size).toBe(2);
+    expect(await repos.expenses.countByProfile(actor.profileId)).toBe(2);
   });
 
   it("resolves a repeated category only once per batch", async () => {
-    const { repos } = createFakeRepos({ categories: [food] });
+    const actor = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
     let lookups = 0;
-    const spy = {
+    // Real repository, wrapped only to count the lookups it receives.
+    const categories = {
       ...repos.categories,
       findById: (profileId: string, categoryId: string) => {
         lookups++;
         return repos.categories.findById(profileId, categoryId);
       },
     };
-    await createExpensesBulk({ ...repos, categories: spy }, actor, rows);
+
+    await createExpensesBulk({ ...repos, categories }, actor, [
+      { amount: 1299, categoryId: food.id, spentAt: "2026-10-01" },
+      { amount: 450, categoryId: food.id, spentAt: "2026-10-02" },
+    ]);
+
     expect(lookups).toBe(1);
   });
 
   it("writes nothing when one row points at a foreign category", async () => {
-    const { repos, stores } = createFakeRepos({
-      categories: [food, someoneElsesCategory],
-    });
+    const actor = await createActor();
+    const stranger = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
+    const foreign = await categoryNamed(repos, stranger, "Supermercado");
+
     await expect(
-      createExpensesBulk(repos, actor, [
-        ...rows,
-        { amount: 700, categoryId: someoneElsesCategory.id, spentAt: "2026-10-03" },
-      ]),
+      createExpensesBulk(
+        repos,
+        actor,
+        [
+          { amount: 1299, categoryId: food.id, spentAt: "2026-10-01" },
+          { amount: 700, categoryId: foreign.id, spentAt: "2026-10-03" },
+        ],
+        (fn) => runInTransaction(db, fn),
+      ),
     ).rejects.toMatchObject({ code: "notFound" });
-    expect(stores.expenses.size).toBe(0);
+
+    expect(await repos.expenses.countByProfile(actor.profileId)).toBe(0);
   });
 
   it("rejects an empty batch", async () => {
-    const { repos } = createFakeRepos({ categories: [food] });
+    const actor = await createActor();
+
     await expect(createExpensesBulk(repos, actor, [])).rejects.toMatchObject({
       code: "bulkEmpty",
     });
   });
 
   it("routes the write through the injected transaction runner", async () => {
-    const { repos, stores } = createFakeRepos({ categories: [food] });
+    const actor = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
     let ran = false;
-    await createExpensesBulk(repos, actor, rows, async (fn) => {
-      ran = true;
-      return fn(repos);
-    });
+
+    await createExpensesBulk(
+      repos,
+      actor,
+      [
+        { amount: 1299, categoryId: food.id, spentAt: "2026-10-01" },
+        { amount: 450, categoryId: food.id, spentAt: "2026-10-02" },
+      ],
+      (fn) => {
+        ran = true;
+        return runInTransaction(db, fn);
+      },
+    );
+
     expect(ran).toBe(true);
-    expect(stores.expenses.size).toBe(2);
+    expect(await repos.expenses.countByProfile(actor.profileId)).toBe(2);
   });
 });
 
 describe("updateExpense", () => {
-  const existing: Expense = {
-    id: "e1",
-    profileId: "p1",
-    categoryId: food.id,
-    amountCents: 500,
-    description: "old",
-    spentAt: "2026-10-01",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
   it("updates an owned expense", async () => {
-    const { repos } = createFakeRepos({
-      categories: [food],
-      expenses: [existing],
+    const actor = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
+    const created = await createExpense(repos, actor, {
+      amount: 500,
+      categoryId: food.id,
+      description: "old",
+      spentAt: "2026-10-01",
     });
+
     const updated = await updateExpense(repos, actor, {
-      id: "e1",
-      ...input,
+      id: created.id,
+      amount: 1299,
+      categoryId: food.id,
       description: "new",
+      spentAt: "2026-10-01",
     });
+
     expect(updated.amountCents).toBe(1299);
     expect(updated.description).toBe("new");
+    expect(
+      await repos.expenses.findById(actor.profileId, created.id),
+    ).toMatchObject({ amountCents: 1299, description: "new" });
   });
 
   it("fails for another profile's expense", async () => {
-    const { repos } = createFakeRepos({
-      categories: [food],
-      expenses: [existing],
+    const actor = await createActor();
+    const stranger = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
+    const strangerFood = await categoryNamed(repos, stranger, "Supermercado");
+    const created = await createExpense(repos, actor, {
+      amount: 500,
+      categoryId: food.id,
+      spentAt: "2026-10-01",
     });
+
     await expect(
-      updateExpense(repos, { ...actor, profileId: "p2" }, { id: "e1", ...input }),
+      updateExpense(repos, stranger, {
+        id: created.id,
+        amount: 700,
+        categoryId: strangerFood.id,
+        spentAt: "2026-10-01",
+      }),
     ).rejects.toMatchObject({ code: "notFound" });
   });
 });
 
 describe("deleteExpense", () => {
   it("deletes an owned expense", async () => {
-    const existing: Expense = {
-      id: "e1",
-      profileId: "p1",
+    const actor = await createActor();
+    const food = await categoryNamed(repos, actor, "Supermercado");
+    const created = await createExpense(repos, actor, {
+      amount: 500,
       categoryId: food.id,
-      amountCents: 500,
-      description: null,
       spentAt: "2026-10-01",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    const { repos, stores } = createFakeRepos({ expenses: [existing] });
-    await deleteExpense(repos, actor, { id: "e1" });
-    expect(stores.expenses.size).toBe(0);
+    });
+
+    await deleteExpense(repos, actor, { id: created.id });
+
+    expect(
+      await repos.expenses.findById(actor.profileId, created.id),
+    ).toBeNull();
   });
 
   it("fails when the expense does not exist", async () => {
-    const { repos } = createFakeRepos();
+    const actor = await createActor();
     await expect(
-      deleteExpense(repos, actor, { id: "missing" }),
+      deleteExpense(repos, actor, { id: randomUUID() }),
     ).rejects.toMatchObject({ code: "notFound" });
   });
 });

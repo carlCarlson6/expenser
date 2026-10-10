@@ -11,7 +11,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "LIVE_DB=1 vitest run test/shared/db/db-live.test.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
@@ -37,6 +36,7 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
+    "@testcontainers/postgresql": "^12.2.0",
     "@types/node": "^24.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",

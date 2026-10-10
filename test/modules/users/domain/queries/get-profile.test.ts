@@ -1,37 +1,37 @@
 import { describe, expect, it } from "vitest";
 
-import type { Profile } from "@/modules/users/data/schema";
-import { createFakeRepos } from "@/shared/testing/fake-repos";
-
 import { getProfile } from "@/modules/users/domain/queries/get-profile";
 
-const existing: Profile = {
-  id: "p1",
-  clerkUserId: "clerk-1",
-  locale: "en",
-  currency: "EUR",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+import { createTestDb } from "@test/shared/db/fixtures";
+
+const { repos, uniqueClerkId, trackProfile } = createTestDb();
 
 describe("getProfile", () => {
   it("returns the existing profile without reseeding", async () => {
-    const { repos, stores } = createFakeRepos({ profiles: [existing] });
-    const profile = await getProfile(repos, "clerk-1");
-    expect(profile.id).toBe("p1");
-    expect(stores.categories.size).toBe(0);
+    const clerkUserId = uniqueClerkId();
+    const existing = await repos.profiles.create({
+      clerkUserId,
+      locale: "en",
+      currency: "EUR",
+    });
+    trackProfile(existing.id);
+
+    const profile = await getProfile(repos, clerkUserId);
+
+    expect(profile.id).toBe(existing.id);
+    expect(await repos.categories.listByProfile(existing.id)).toHaveLength(0);
   });
 
   it("provisions a profile and seeds default categories on first read", async () => {
-    const { repos, stores } = createFakeRepos();
-    const profile = await getProfile(repos, "clerk-new");
+    const clerkUserId = uniqueClerkId();
 
-    expect(profile.clerkUserId).toBe("clerk-new");
+    const profile = await getProfile(repos, clerkUserId);
+    trackProfile(profile.id);
+
+    expect(profile.clerkUserId).toBe(clerkUserId);
     expect(profile.locale).toBe("es");
 
-    const categories = [...stores.categories.values()].filter(
-      (c) => c.profileId === profile.id,
-    );
+    const categories = await repos.categories.listByProfile(profile.id);
     expect(categories.length).toBeGreaterThan(5);
     expect(categories.filter((c) => c.isProtected)).toHaveLength(1);
   });

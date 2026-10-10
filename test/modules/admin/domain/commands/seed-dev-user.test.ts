@@ -1,15 +1,41 @@
+import { and, eq, notInArray } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { seedDevUser } from "@/modules/admin/domain/commands/seed-dev-user";
+import type { TransactionRunner } from "@/modules/admin/domain/commands/seed-dev-user";
+import { categories } from "@/modules/categories/data/schema";
+import { expenses } from "@/modules/expenses/data/schema";
 import { DomainError } from "@/modules/users/domain/types";
-import { createFakeRepos } from "@/shared/testing/fake-repos";
+
+import { runInTransaction } from "@/shared/db/repos";
+
+import { createTestDb } from "@test/shared/db/fixtures";
+
+const { db, repos, createActor, uniqueClerkId, trackProfile } = createTestDb();
 
 const TODAY = new Date(2026, 9, 9);
 
+const run: TransactionRunner = (fn) => runInTransaction(db, fn);
+
+/**
+ * Seeds a fresh clerk user and reads the persisted rows back, so tests
+ * assert what actually landed in Postgres.
+ */
 async function seed(clerkUserId: string, months = 1, force?: boolean) {
-  const { repos, stores } = createFakeRepos();
-  const summary = await seedDevUser(repos, { clerkUserId, months, force, today: TODAY });
-  const expenses = [...stores.expenses.values()]
+  const summary = await seedDevUser(
+    repos,
+    { clerkUserId, months, force, today: TODAY },
+    run,
+  );
+  const profile = await repos.profiles.findByClerkUserId(clerkUserId);
+  if (!profile) throw new Error("Test setup: seeded profile not found");
+  trackProfile(profile.id);
+
+  const page = await repos.expenses.list(profile.id, {
+    page: 1,
+    pageSize: 10_000,
+  });
+  const rows = page.items
     .map(
       (e): [number, string, string | null] => [
         e.amountCents,
@@ -18,12 +44,13 @@ async function seed(clerkUserId: string, months = 1, force?: boolean) {
       ],
     )
     .sort();
-  return { summary, expenses };
+
+  return { summary, expenses: rows, profileId: profile.id };
 }
 
 describe("seedDevUser", () => {
   it("provisions the profile and fills it with expenses", async () => {
-    const { summary, expenses } = await seed("clerk-1");
+    const { summary, expenses } = await seed(uniqueClerkId());
 
     expect(summary.profileId).toBeTruthy();
     expect(summary.inserted).toBeGreaterThan(0);
@@ -34,104 +61,80 @@ describe("seedDevUser", () => {
   });
 
   it("is deterministic for the same clerk user", async () => {
-    const a = await seed("clerk-1");
-    const b = await seed("clerk-1");
-    const c = await seed("clerk-2");
+    const clerkUserId = uniqueClerkId();
+    const first = await seed(clerkUserId);
+    await db.delete(expenses).where(eq(expenses.profileId, first.profileId));
+    const again = await seed(clerkUserId, 1, true);
+    const other = await seed(uniqueClerkId());
 
-    expect(a.expenses).toEqual(b.expenses);
-    expect(c.expenses).not.toEqual(a.expenses);
+    expect(again.expenses).toEqual(first.expenses);
+    expect(again.summary.byCategory).toEqual(first.summary.byCategory);
+    expect(other.expenses).not.toEqual(first.expenses);
   });
 
   it("refuses a profile that already has expenses unless forced", async () => {
-    const { repos, stores } = createFakeRepos();
-    await seedDevUser(repos, { clerkUserId: "clerk-1", months: 1, today: TODAY });
+    const clerkUserId = uniqueClerkId();
+    await seed(clerkUserId);
 
-    const second = await createFakeRepos({
-      profiles: [...stores.profiles.values()],
-      categories: [...stores.categories.values()],
-      expenses: [...stores.expenses.values()],
-    });
     await expect(
-      seedDevUser(second.repos, { clerkUserId: "clerk-1", months: 1, today: TODAY }),
+      seedDevUser(repos, { clerkUserId, months: 1, today: TODAY }, run),
     ).rejects.toBeInstanceOf(DomainError);
 
-    const forced = await seedDevUser(second.repos, {
-      clerkUserId: "clerk-1",
-      months: 1,
-      force: true,
-      today: TODAY,
-    });
+    const forced = await seedDevUser(
+      repos,
+      { clerkUserId, months: 1, force: true, today: TODAY },
+      run,
+    );
     expect(forced.inserted).toBeGreaterThan(0);
   });
 
   it("only writes expenses for the profile it seeds", async () => {
-    const { repos, stores } = createFakeRepos();
-    await seedDevUser(repos, { clerkUserId: "clerk-1", months: 1, today: TODAY });
-    await seedDevUser(repos, { clerkUserId: "clerk-2", months: 1, today: TODAY });
+    const first = await seed(uniqueClerkId());
+    const second = await seed(uniqueClerkId());
+    const bystander = await createActor();
 
-    const byProfile = new Map<string, number>();
-    for (const e of stores.expenses.values()) {
-      byProfile.set(e.profileId, (byProfile.get(e.profileId) ?? 0) + 1);
-    }
-
-    expect(byProfile.size).toBe(2);
-    expect([...byProfile.values()].every((n) => n > 0)).toBe(true);
-    const profileIds = new Set([...stores.profiles.values()].map((p) => p.id));
-    for (const e of stores.expenses.values()) {
-      expect(profileIds.has(e.profileId)).toBe(true);
-    }
+    expect(await repos.expenses.countByProfile(first.profileId)).toBe(
+      first.summary.inserted,
+    );
+    expect(await repos.expenses.countByProfile(second.profileId)).toBe(
+      second.summary.inserted,
+    );
+    expect(await repos.expenses.countByProfile(bystander.profileId)).toBe(0);
   });
 
   it("sums the per-category totals it reports", async () => {
-    const { summary } = await seed("clerk-1", 2);
+    const { summary, expenses } = await seed(uniqueClerkId(), 2);
     const summed = summary.byCategory.reduce((acc, c) => acc + c.totalCents, 0);
+    const persisted = expenses.reduce((acc, [amountCents]) => acc + amountCents, 0);
 
     expect(summed).toBe(summary.totalCents);
     expect(summary.byCategory.reduce((acc, c) => acc + c.count, 0)).toBe(
       summary.inserted,
     );
+    expect(persisted).toBe(summary.totalCents);
   });
 
   it("skips rules whose category the profile does not have", async () => {
-    // A profile with only two of the categories the rules reference.
-    const { repos } = createFakeRepos({
-      profiles: [
-        {
-          id: "p1",
-          clerkUserId: "clerk-partial",
-          locale: "es",
-          currency: "USD",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ],
-      categories: [
-        {
-          id: "cat-rent",
-          profileId: "p1",
-          name: "Vivienda",
-          color: "#22c55e",
-          isProtected: false,
-          createdAt: new Date(),
-        },
-        {
-          id: "cat-food",
-          profileId: "p1",
-          name: "Supermercado",
-          color: "#ef4444",
-          isProtected: false,
-          createdAt: new Date(),
-        },
-      ],
-    });
+    // A profile with only two of the categories the rules reference; the
+    // protected "Otros" cannot be deleted through the command, so set the
+    // state up directly.
+    const actor = await createActor();
+    await db
+      .delete(categories)
+      .where(
+        and(
+          eq(categories.profileId, actor.profileId),
+          notInArray(categories.name, ["Vivienda", "Supermercado"]),
+        ),
+      );
 
-    const summary = await seedDevUser(repos, {
-      clerkUserId: "clerk-partial",
-      months: 1,
-      today: TODAY,
-    });
+    const summary = await seedDevUser(
+      repos,
+      { clerkUserId: actor.clerkUserId, months: 1, today: TODAY },
+      run,
+    );
 
-    expect(summary.profileId).toBe("p1");
+    expect(summary.profileId).toBe(actor.profileId);
     expect(summary.missingCategories).toContain("Viajes");
     expect(summary.byCategory.map((c) => c.name).sort()).toEqual([
       "Supermercado",

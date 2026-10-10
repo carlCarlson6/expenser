@@ -14,14 +14,14 @@ import { getDb, type Db } from "@/shared/db/client";
 import { createRepos } from "@/shared/db/repos";
 
 /**
- * Integration test against a real Postgres (docker compose via `npm run
- * db:up`). Skipped unless LIVE_DB=1 so `npm test` stays hermetic.
- * Run with: npm run test:db
+ * End-to-end flow test against the Testcontainers Postgres the global setup
+ * boots for `npm test`: provision → record → aggregate → delete. The
+ * per-module suites live next to their slices; this one exercises the whole
+ * stack on one tenant.
  */
-const live = process.env.LIVE_DB === "1";
-const clerkUserId = `live-test-${Date.now()}`;
+const clerkUserId = `flow-test-${Date.now()}`;
 
-describe.skipIf(!live)("database (live)", () => {
+describe("database (integration)", () => {
   let db: Db;
   let actor: Actor;
   let foodId: string;

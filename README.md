@@ -14,7 +14,7 @@ Expense tracker. Next.js (App Router) full stack, Clerk auth, Postgres (Docker l
 | Charts | Recharts |
 | Validation | Zod (v4) |
 | i18n | next-intl (`es` default, `en`), locale-prefixed routes |
-| Tests | Vitest (domain unit tests + optional live-DB integration tests) |
+| Tests | Vitest, real repositories against a Testcontainers Postgres |
 
 ## Architecture
 
@@ -47,9 +47,11 @@ src/
     ├── money/                # cents parsing/formatting, date formatting
     ├── auth/                 # Clerk helpers + admin key check
     ├── ui/                   # presentational primitives (button, field, modal, action-form)
-    └── testing/              # in-memory fake repositories for unit tests
+    └── testing/              # `server-only` stub used by the Vitest alias
 
 test/                        # mirrors the src/ structure; only *.test.ts files
+├── setup/                   # Testcontainers Postgres bootstrapped per run
+├── shared/db/fixtures.ts    # real-repo test context (fresh tenant per actor)
 ├── modules/
 │   ├── users/domain/queries/get-profile.test.ts
 │   ├── categories/data/palette.test.ts
@@ -57,9 +59,17 @@ test/                        # mirrors the src/ structure; only *.test.ts files
 │   ├── expenses/domain/commands/expenses.test.ts
 │   └── reports/domain/{dates.test.ts, queries/get-dashboard-data.test.ts}
 └── shared/
-    ├── db/db-live.test.ts    # opt-in integration test (LIVE_DB=1)
+    ├── db/db-live.test.ts    # end-to-end flow on one tenant
     └── money/money.test.ts
 ```
+
+There are no fake repositories: every suite runs against the real Drizzle
+repositories on an ephemeral Postgres. `test/setup/global-db.ts` (a Vitest
+`globalSetup`) starts a `postgres:16-alpine` container and applies the
+migrations, and `test/setup/db-env.ts` points `DATABASE_URL` at it inside each
+worker. Tests isolate themselves by tenant: `test/shared/db/fixtures.ts`
+provisions a fresh profile (with its default categories) per test case and
+cleans them up afterwards.
 
 Rules of the road:
 
@@ -77,8 +87,9 @@ Rules of the road:
   and deleting a category / seeding a profile both need one.
 - **Tests live in `/test`**, mirroring the `/src` tree (`test/modules/expenses/…`
   tests `src/modules/expenses/…`). Nothing under `src/` is test-only. Tests
-  import production code through the `@/` alias, never through relative paths,
-  so moving a test never breaks its imports.
+  import production code through the `@/` alias and test helpers through the
+  `@test/` alias, never through relative paths, so moving a test never breaks
+  its imports.
 
 ### Key flows
 
@@ -105,7 +116,8 @@ Rules of the road:
 
 ## Getting started
 
-Requirements: Node 20.9+, Docker (for local Postgres).
+Requirements: Node 20.9+, Docker (local Postgres and the Testcontainers
+instance behind `npm test`).
 
 ```bash
 npm install
@@ -141,8 +153,7 @@ the placeholder keys, not an app error.
 | --- | --- |
 | `dev` / `build` / `start` | Next.js |
 | `lint` / `typecheck` | ESLint, `tsc --noEmit` |
-| `test` / `test:watch` | Vitest domain unit tests from `test/` (no DB needed) |
-| `test:db` | Live integration tests (`test/shared/db/db-live.test.ts`) against the local Postgres (needs `db:up`) |
+| `test` / `test:watch` | Vitest, real repositories against a Testcontainers Postgres (Docker required) |
 | `db:up` / `db:down` | Start/stop the Postgres container |
 | `db:generate` / `db:migrate` | Drizzle migration generate/apply |
 | `db:studio` | Drizzle Studio |
