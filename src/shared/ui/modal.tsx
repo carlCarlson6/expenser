@@ -10,12 +10,14 @@ export function Modal({
   title,
   children,
   wide = false,
+  xl = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
   wide?: boolean;
+  xl?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -44,7 +46,7 @@ export function Modal({
       <div
         className={cx(
           "relative w-full rounded-xl bg-white p-6 shadow-xl",
-          wide ? "max-w-lg" : "max-w-md",
+          xl ? "max-w-4xl" : wide ? "max-w-lg" : "max-w-md",
         )}
       >
         <h2 className="mb-4 text-lg font-semibold text-zinc-900">{title}</h2>

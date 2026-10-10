@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getDb } from "@/shared/db/client";
-import { createRepos } from "@/shared/db/repos";
+import { createRepos, runInTransaction } from "@/shared/db/repos";
 import { fail, ok, type ActionResult } from "@/shared/result";
 
 import { getActor } from "../users/actor";
@@ -12,13 +12,19 @@ import { DomainError } from "../users/domain/types";
 import { createExpense } from "./domain/commands/create-expense";
 import { createExpensesBulk } from "./domain/commands/create-expenses-bulk";
 import { deleteExpense } from "./domain/commands/delete-expense";
+import { importExpenses } from "./domain/commands/import-expenses";
 import { updateExpense } from "./domain/commands/update-expense";
+import { listDuplicateFingerprints } from "./domain/queries/list-duplicate-fingerprints";
 import {
   bulkExpensesSchema,
   expenseInputSchema,
   MAX_BULK_ROWS,
   toBulkFieldErrors,
 } from "./domain/validators/expense";
+import {
+  duplicateRangeSchema,
+  importPayloadSchema,
+} from "./domain/validators/import";
 
 function toResult(error: unknown): ActionResult {
   if (error instanceof DomainError) return fail(error.code);
@@ -133,5 +139,67 @@ export async function deleteExpenseAction(
     return ok;
   } catch (error) {
     return toResult(error);
+  }
+}
+
+/**
+ * Imports a previewed batch in one atomic submission. The client parses and
+ * validates the file (see `domain/import`), so validation failures here mean
+ * the payload did not come from the preview form; row-scoped messages still
+ * map back to the same `rows.<index>.<field>` keys the bulk form uses.
+ */
+export async function importExpensesAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const raw = formData.get("payload");
+  let json: unknown = null;
+  if (typeof raw === "string") {
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      json = null;
+    }
+  }
+
+  const parsed = importPayloadSchema.safeParse(json);
+  if (!parsed.success) {
+    return fail("generic", toBulkFieldErrors(parsed.error));
+  }
+
+  try {
+    const actor = await getActor();
+    await importExpenses(
+      createRepos(getDb()),
+      actor,
+      parsed.data.rows,
+      (fn) => runInTransaction(getDb(), fn),
+    );
+    revalidatePath("/[locale]", "layout");
+    return ok;
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * Fingerprints of existing expenses in a date range, used by the import
+ * preview to flag possible duplicates. Read-only; failures degrade to "no
+ * duplicates" rather than blocking the import.
+ */
+export async function checkImportDuplicatesAction(
+  input: unknown,
+): Promise<string[]> {
+  const parsed = duplicateRangeSchema.safeParse(input);
+  if (!parsed.success) return [];
+  try {
+    const actor = await getActor();
+    return await listDuplicateFingerprints(
+      createRepos(getDb()),
+      actor,
+      parsed.data,
+    );
+  } catch {
+    return [];
   }
 }

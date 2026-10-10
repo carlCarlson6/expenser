@@ -40,6 +40,8 @@ export default async function ExpensesPage({
   ]);
 
   const categoryOptions = categories.map((c) => ({ id: c.id, name: c.name }));
+  const protectedCategoryName =
+    categories.find((c) => c.isProtected)?.name ?? "";
 
   const pageHref = (page: number) => {
     const qs = new URLSearchParams();
@@ -71,6 +73,7 @@ export default async function ExpensesPage({
 
       <ExpenseTable
         categories={categoryOptions}
+        protectedCategoryName={protectedCategoryName}
         emptyMessage={t("empty")}
         rows={page.items.map((e) => ({
           id: e.id,
