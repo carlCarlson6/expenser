@@ -7,6 +7,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -20,8 +21,10 @@ import { ALL_CATEGORIES_COLOR } from "./colors";
 import { currencyFormatter } from "./format";
 
 const MARGIN = { top: 8, right: 8, left: 0, bottom: 0 };
-/** Neutral gray for the previous-period baseline: present, never dominant. */
-const COMPARISON_COLOR = "#d4d4d8";
+/** Visible neutral gray for the previous-period baseline: present, never dominant. */
+const COMPARISON_COLOR = "#71717a";
+/** Dark ink for the trailing moving average: visible against any category color. */
+const MOVING_AVERAGE_COLOR = "#18181b";
 
 export function TrendChart({
   data,
@@ -76,6 +79,11 @@ export function TrendChart({
         cursor={cursor}
         contentStyle={{ fontSize: 12, borderRadius: 8 }}
       />
+      <Legend
+        verticalAlign="bottom"
+        formatter={(value) => seriesLabel(value, variant, t)}
+        wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+      />
     </>
   );
 
@@ -88,7 +96,6 @@ export function TrendChart({
     dot={false}
     activeDot={{ r: 3 }}
     connectNulls={false}
-    legendType="none"
   />;
 
   /** The trailing moving average. Drawn only where it reads: on bars it would
@@ -97,12 +104,11 @@ export function TrendChart({
     variant === "bar" ? null : (
       <Line
         dataKey="average"
-        stroke={color}
+        stroke={MOVING_AVERAGE_COLOR}
         strokeWidth={2}
         dot={false}
         activeDot={{ r: 3 }}
         connectNulls={false}
-        legendType="none"
       />
     );
 
