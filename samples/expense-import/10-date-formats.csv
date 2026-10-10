@@ -1,0 +1,11 @@
+Fecha;Importe;Categoría;Concepto
+2026-10-01;1,00;Supermercado;ISO
+2026/10/02;2,00;Supermercado;ISO con barras
+03/10/2026;3,00;Supermercado;DD/MM/AAAA
+04-10-2026;4,00;Supermercado;DD-MM-AAAA
+05.10.2026;5,00;Supermercado;DD.MM.AAAA
+2026-10-06T12:30:00Z;6,00;Supermercado;ISO con hora
+07/10/2026 08:15;7,00;Supermercado;Con hora
+03/04/2026;8,00;Supermercado;Ambigua según día/mes
+25/12/2026;9,00;Supermercado;No ambigua
+31/02/2026;10,00;Supermercado;Imposible (inválida)

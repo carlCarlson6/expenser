@@ -1,0 +1,4 @@
+Fecha,Importe,Categoría,Concepto
+2026-10-01,12.50,,Sin categoría
+2026-10-02,4.00,"   ",Categoría solo con espacios
+2026-10-03,7.75,Otros,Categoría explícita
