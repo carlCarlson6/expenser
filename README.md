@@ -100,8 +100,9 @@ Rules of the road:
 - **Database** driver is picked from `DATABASE_URL` (`neon.tech` → Neon over
   WebSockets). Neon also has an HTTP driver, but it cannot open a transaction,
   and deleting a category / seeding a profile both need one.
-- **Tests live in `/test`**, mirroring the `/src` tree (`test/modules/expenses/…`
-  tests `src/modules/expenses/…`). Nothing under `src/` is test-only. Tests
+- **Tests live in `/test`**, split into `unit/` and `integration/` with the
+  same tree as `/src` (`test/integration/modules/expenses/…` tests
+  `src/modules/expenses/…`). Nothing under `src/` is test-only. Tests
   import production code through the `@/` alias and test helpers through the
   `@test/` alias, never through relative paths, so moving a test never breaks
   its imports.
