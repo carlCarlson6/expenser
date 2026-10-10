@@ -45,6 +45,15 @@ export interface ExpenseRepository {
   ): Promise<number>;
   /** How many expenses the profile has; used to guard destructive commands. */
   countByProfile(profileId: string): Promise<number>;
+  /**
+   * Minimal projection (day, cents, description) of every expense in a date
+   * range, used to flag likely duplicates before an import.
+   */
+  listFingerprints(
+    profileId: string,
+    from: string,
+    to: string,
+  ): Promise<{ spentAt: string; amountCents: number; description: string | null }[]>;
   list(
     profileId: string,
     filters: ExpenseFilters,
@@ -135,6 +144,23 @@ export function createExpenseRepository(db: Db): ExpenseRepository {
         .from(expenses)
         .where(eq(expenses.profileId, profileId));
       return rows[0]?.count ?? 0;
+    },
+
+    async listFingerprints(profileId, from, to) {
+      return db
+        .select({
+          spentAt: expenses.spentAt,
+          amountCents: expenses.amountCents,
+          description: expenses.description,
+        })
+        .from(expenses)
+        .where(
+          and(
+            eq(expenses.profileId, profileId),
+            gte(expenses.spentAt, from),
+            lte(expenses.spentAt, to),
+          ),
+        );
     },
 
     async list(profileId, filters) {

@@ -12,6 +12,7 @@ import { CategoryBadge } from "@/modules/reports/ui/category-legend";
 import { deleteExpenseAction } from "../actions";
 import { ExpensesBulkModal } from "./expense-bulk-form";
 import { ExpenseFormModal, type ExpenseFormValues } from "./expense-form";
+import { ExpenseImportModal } from "./expense-import-modal";
 
 type Row = {
   id: string;
@@ -26,16 +27,19 @@ type Row = {
 export function ExpenseTable({
   rows,
   categories,
+  protectedCategoryName,
   emptyMessage,
 }: {
   rows: Row[];
   categories: { id: string; name: string }[];
+  protectedCategoryName: string;
   emptyMessage: string;
 }) {
   const t = useTranslations("expenses");
   const tCommon = useTranslations("common");
   const [formOpen, setFormOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<
     (ExpenseFormValues & { id: string }) | null
   >(null);
@@ -47,6 +51,9 @@ export function ExpenseTable({
   return (
     <>
       <div className="mb-4 flex justify-end gap-2">
+        <Button variant="secondary" onClick={() => setImportOpen(true)}>
+          {t("import.button")}
+        </Button>
         <Button variant="secondary" onClick={() => setBulkOpen(true)}>
           {t("bulkAdd")}
         </Button>
@@ -142,6 +149,13 @@ export function ExpenseTable({
         onClose={() => setBulkOpen(false)}
         categories={categories}
         today={today}
+      />
+
+      <ExpenseImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        categories={categories}
+        protectedCategoryName={protectedCategoryName}
       />
 
       <Modal
