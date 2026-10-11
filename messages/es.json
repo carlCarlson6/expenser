@@ -22,6 +22,53 @@
     "categories": "Categorías",
     "settings": "Ajustes"
   },
+  "landing": {
+    "appName": "Expenser",
+    "meta": {
+      "title": "Expenser — Controla tus gastos sin hojas de cálculo",
+      "description": "Un seguimiento de gastos sencillo, privado y multidioma. Registra gastos, organiza categorías, visualiza tendencias e importa extractos bancarios."
+    },
+    "nav": {
+      "signIn": "Iniciar sesión",
+      "signUp": "Crear cuenta"
+    },
+    "hero": {
+      "title": "Controla tus gastos sin hojas de cálculo",
+      "subtitle": "Expenser te ayuda a registrar gastos, organizarlos por categorías y entender dónde se va tu dinero, con un diseño sencillo y privado.",
+      "cta": {
+        "primary": "Empezar gratis",
+        "secondary": "Iniciar sesión"
+      }
+    },
+    "features": {
+      "title": "Todo lo que necesitas",
+      "expenses": {
+        "title": "Registra gastos en segundos",
+        "description": "Añade importes, descripciones y fechas rápidamente. Incluso puedes introducir varios gastos de una vez."
+      },
+      "categories": {
+        "title": "Tus propias categorías",
+        "description": "Crea y personaliza categorías con colores. Al eliminar una, sus gastos se reasignan automáticamente."
+      },
+      "charts": {
+        "title": "Visualiza tus hábitos",
+        "description": "Explora tendencias, comparativas de periodos y desglose por categoría con gráficos claros."
+      },
+      "import": {
+        "title": "Importa extractos",
+        "description": "Carga archivos CSV o Excel, incluidos extractos del banco Santander España, y detecta posibles duplicados."
+      }
+    },
+    "cta": {
+      "title": "Empieza hoy",
+      "subtitle": "Crea tu cuenta en unos segundos y toma el control de tus finanzas personales.",
+      "button": "Crear cuenta gratis"
+    },
+    "locales": {
+      "spanish": "Español",
+      "english": "English"
+    }
+  },
   "dashboard": {
     "title": "Panel",
     "total": "Total del periodo",

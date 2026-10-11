@@ -18,7 +18,7 @@ export default async function AppLayout({
   // The profile's language is the durable preference; if the URL locale
   // disagrees (e.g. fresh device without the locale cookie), realign once.
   if (actor.locale !== locale) {
-    redirect({ href: "/", locale: actor.locale });
+    redirect({ href: "/dashboard", locale: actor.locale });
   }
 
   return (

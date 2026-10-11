@@ -6,7 +6,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cx } from "@/shared/ui/cx";
 
 const ITEMS = [
-  { href: "/", key: "dashboard" },
+  { href: "/dashboard", key: "dashboard" },
   { href: "/expenses", key: "expenses" },
   { href: "/categories", key: "categories" },
   { href: "/settings", key: "settings" },
@@ -19,14 +19,13 @@ export function Nav() {
   return (
     <nav className="flex items-center gap-1 overflow-x-auto">
       <Link
-        href="/"
+        href="/dashboard"
         className="mr-3 shrink-0 rounded-lg text-base font-bold tracking-tight transition-opacity hover:opacity-70"
       >
         {t("appName")}
       </Link>
       {ITEMS.map((item) => {
-        const active =
-          item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        const active = pathname.startsWith(item.href);
         return (
           <Link
             key={item.key}

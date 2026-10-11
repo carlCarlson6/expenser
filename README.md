@@ -109,6 +109,8 @@ Rules of the road:
 
 ### Key flows
 
+- **Routing**: `/` is a public landing page; authenticated users are redirected
+  to `/dashboard`. Auth routes live at `/sign-in` and `/sign-up`.
 - **First sign-in**: `getProfile` (query) finds no profile → creates one and
   seeds the 10 default categories (last one protected: the "Other" bucket).
   No Clerk webhooks needed for the MVP.
@@ -140,7 +142,7 @@ npm install
 cp .env.example .env.local   # add your real Clerk keys
 npm run db:up                # start Postgres on :5432
 npm run db:migrate           # apply migrations
-npm run dev                  # http://localhost:3000 (redirects to /sign-in)
+npm run dev                  # http://localhost:3000 (landing page; protected routes redirect to /sign-in)
 ```
 
 ### Clerk setup

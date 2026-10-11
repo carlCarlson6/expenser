@@ -4,8 +4,10 @@ import { routing } from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
 
-// Everything is protected except the auth pages (locale-prefixed or not).
+// Public routes: landing page, auth pages (locale-prefixed or not).
 const isPublicRoute = createRouteMatcher([
+  "/",
+  "/:locale",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/:locale/sign-in(.*)",

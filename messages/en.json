@@ -22,6 +22,53 @@
     "categories": "Categories",
     "settings": "Settings"
   },
+  "landing": {
+    "appName": "Expenser",
+    "meta": {
+      "title": "Expenser — Track your expenses without spreadsheets",
+      "description": "Simple, private, multi-language expense tracking. Log expenses, organize categories, visualize trends and import bank statements."
+    },
+    "nav": {
+      "signIn": "Sign in",
+      "signUp": "Sign up"
+    },
+    "hero": {
+      "title": "Track your expenses without spreadsheets",
+      "subtitle": "Expenser helps you log spending, organize it by category and understand where your money goes, with a simple, private design.",
+      "cta": {
+        "primary": "Get started free",
+        "secondary": "Sign in"
+      }
+    },
+    "features": {
+      "title": "Everything you need",
+      "expenses": {
+        "title": "Log expenses in seconds",
+        "description": "Add amounts, descriptions and dates quickly. You can even enter several expenses at once."
+      },
+      "categories": {
+        "title": "Your own categories",
+        "description": "Create and customize categories with colors. When you delete one, its expenses are reassigned automatically."
+      },
+      "charts": {
+        "title": "Visualize your habits",
+        "description": "Explore trends, period comparisons and category breakdowns with clear charts."
+      },
+      "import": {
+        "title": "Import statements",
+        "description": "Upload CSV or Excel files, including Santander Spain exports, and detect possible duplicates."
+      }
+    },
+    "cta": {
+      "title": "Start today",
+      "subtitle": "Create your account in seconds and take control of your personal finances.",
+      "button": "Create free account"
+    },
+    "locales": {
+      "spanish": "Español",
+      "english": "English"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "total": "Period total",
