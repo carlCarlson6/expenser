@@ -11,6 +11,7 @@ export function Modal({
   children,
   wide = false,
   xl = false,
+  closeOnBackdropClick = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -18,6 +19,8 @@ export function Modal({
   children: React.ReactNode;
   wide?: boolean;
   xl?: boolean;
+  /** Whether clicking the backdrop closes the modal. Escape always closes. */
+  closeOnBackdropClick?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -41,7 +44,7 @@ export function Modal({
         type="button"
         aria-label="Close"
         className="absolute inset-0 cursor-default bg-zinc-950/40"
-        onClick={onClose}
+        onClick={closeOnBackdropClick ? onClose : undefined}
       />
       <div
         className={cx(

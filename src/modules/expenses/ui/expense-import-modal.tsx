@@ -19,6 +19,13 @@ import { Modal } from "@/shared/ui/modal";
 
 import { checkImportDuplicatesAction, importExpensesAction } from "../actions";
 import {
+  BANK_KEYS,
+  BANK_PARSERS,
+  getBankParser,
+  isBankParseFailure,
+  type BankKey,
+} from "../domain/import/bank";
+import {
   buildDraftRows,
   hasErrors,
   newCategorySummary,
@@ -94,6 +101,9 @@ export function ExpenseImportModal({
   const [page, setPage] = useState(1);
   const [fingerprints, setFingerprints] = useState<Set<string>>(new Set());
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
+  const [bankKey, setBankKey] = useState<BankKey | null>(null);
+
+  const isBankMode = bankKey !== null;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nextKeyRef = useRef(0);
@@ -111,6 +121,7 @@ export function ExpenseImportModal({
     setPage(1);
     setFingerprints(new Set());
     fingerprintCache.current.clear();
+    setBankKey(null);
   };
 
   const close = () => {
@@ -125,6 +136,16 @@ export function ExpenseImportModal({
   ) => {
     setRows(
       buildDraftRows(data, header, map).map((draft) => ({
+        key: nextKeyRef.current++,
+        ...draft,
+      })),
+    );
+    setPage(1);
+  };
+
+  const setDraftRows = (drafts: DraftRow[]) => {
+    setRows(
+      drafts.map((draft) => ({
         key: nextKeyRef.current++,
         ...draft,
       })),
@@ -153,6 +174,23 @@ export function ExpenseImportModal({
       }
       if (grid.length > MAX_IMPORT_ROWS + 1) {
         setFileError(t("import.tooManyRows", { max: MAX_IMPORT_ROWS }));
+        return;
+      }
+
+      const parser = getBankParser(bankKey);
+      if (parser) {
+        const result = parser.parse(grid);
+        if (isBankParseFailure(result)) {
+          setFileError(t(result.error));
+          return;
+        }
+        setSheet(grid);
+        setColumnCount(Math.max(...grid.map((row) => row.length)));
+        setFileName(file.name);
+        setHasHeader(false);
+        setMapping(EMPTY_MAPPING);
+        setFingerprints(new Set());
+        setDraftRows(result.rows);
         return;
       }
 
@@ -250,6 +288,10 @@ export function ExpenseImportModal({
     () => prepared.filter((p) => p.duplicate).length,
     [prepared],
   );
+  const missingCategoryCount = useMemo(
+    () => prepared.filter((p) => !hasErrors(p) && p.categoryName === null).length,
+    [prepared],
+  );
   const newCategories = useMemo(
     () => newCategorySummary(prepared, existingNames),
     [prepared, existingNames],
@@ -344,9 +386,9 @@ export function ExpenseImportModal({
   const canSubmit =
     rows.length > 0 &&
     invalidCount === 0 &&
+    missingCategoryCount === 0 &&
     !tooManyRows &&
-    mapping.spentAt !== null &&
-    mapping.amount !== null;
+    (isBankMode || (mapping.spentAt !== null && mapping.amount !== null));
 
   const payload = useMemo(
     () => (canSubmit ? JSON.stringify({ rows: toImportPayload(prepared) }) : ""),
@@ -354,7 +396,7 @@ export function ExpenseImportModal({
   );
 
   return (
-    <Modal open={open} onClose={close} title={t("import.title")} xl>
+    <Modal open={open} onClose={close} title={t("import.title")} xl closeOnBackdropClick={false}>
       <ActionForm
         action={importExpensesAction}
         onSuccess={() => {
@@ -375,31 +417,56 @@ export function ExpenseImportModal({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.xlsx"
+              accept=".csv,.xlsx,.xls"
               className="hidden"
               onChange={onFileChange}
             />
 
             {sheet === null ? (
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={onDrop}
-                className="rounded-xl border-2 border-dashed border-zinc-300 p-8 text-center"
-              >
-                <p className="text-sm text-zinc-600">{t("import.fileHint")}</p>
-                <div className="mt-4 flex justify-center">
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    disabled={parsing}
-                    onClick={() => fileInputRef.current?.click()}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs" htmlFor="import-bank-select">
+                    {t("import.bankLabel")}
+                  </Label>
+                  <Select
+                    id="import-bank-select"
+                    value={bankKey ?? ""}
+                    onChange={(e) =>
+                      setBankKey((e.target.value as BankKey) || null)
+                    }
                   >
-                    {parsing ? t("import.parsing") : t("import.chooseFile")}
-                  </Button>
+                    <option value="">{t("import.bankGeneric")}</option>
+                    {BANK_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {t(BANK_PARSERS[key].labelKey.replace("expenses:", ""))}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
-                {fileError && (
-                  <p className="mt-3 text-sm text-red-600">{fileError}</p>
-                )}
+
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={onDrop}
+                  className="rounded-xl border-2 border-dashed border-zinc-300 p-8 text-center"
+                >
+                  <p className="text-sm text-zinc-600">{t("import.fileHint")}</p>
+                  <div className="mt-4 flex justify-center gap-2">
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      disabled={parsing}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {parsing ? t("import.parsing") : t("import.chooseFile")}
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={close}>
+                      {tCommon("cancel")}
+                    </Button>
+                  </div>
+                  {fileError && (
+                    <p className="mt-3 text-sm text-red-600">{fileError}</p>
+                  )}
+                </div>
               </div>
             ) : (
               <>
@@ -415,49 +482,53 @@ export function ExpenseImportModal({
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {IMPORT_COLUMNS.map((column) => (
-                    <div key={column}>
-                      <Label
-                        className="text-xs"
-                        htmlFor={`import-map-${column}`}
-                      >
-                        {t(COLUMN_LABEL_KEYS[column])}
-                      </Label>
-                      <Select
-                        id={`import-map-${column}`}
-                        value={mapping[column] ?? ""}
-                        onChange={(e) => setColumn(column, e.target.value)}
-                      >
-                        <option value="">{t("import.columnNone")}</option>
-                        {columnLabels.map((label, index) => (
-                          <option key={index} value={index}>
-                            {label}
-                          </option>
-                        ))}
-                      </Select>
+                {!isBankMode && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {IMPORT_COLUMNS.map((column) => (
+                        <div key={column}>
+                          <Label
+                            className="text-xs"
+                            htmlFor={`import-map-${column}`}
+                          >
+                            {t(COLUMN_LABEL_KEYS[column])}
+                          </Label>
+                          <Select
+                            id={`import-map-${column}`}
+                            value={mapping[column] ?? ""}
+                            onChange={(e) => setColumn(column, e.target.value)}
+                          >
+                            <option value="">{t("import.columnNone")}</option>
+                            {columnLabels.map((label, index) => (
+                              <option key={index} value={index}>
+                                {label}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={hasHeader}
-                      onChange={(e) => setHeaderRow(e.target.checked)}
-                    />
-                    {t("import.firstRowHeader")}
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={dayFirst}
-                      onChange={(e) => setDayFirst(e.target.checked)}
-                    />
-                    {t("import.dayFirst")}
-                  </label>
-                </div>
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={hasHeader}
+                          onChange={(e) => setHeaderRow(e.target.checked)}
+                        />
+                        {t("import.firstRowHeader")}
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={dayFirst}
+                          onChange={(e) => setDayFirst(e.target.checked)}
+                        />
+                        {t("import.dayFirst")}
+                      </label>
+                    </div>
+                  </>
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <FilterChip
@@ -507,7 +578,7 @@ export function ExpenseImportModal({
                   </Button>
                 </div>
 
-                {(newCategories.length > 0 || usesOther) && (
+                {(newCategories.length > 0 || (usesOther && !isBankMode)) && (
                   <div className="max-h-32 overflow-y-auto rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     {newCategories.length > 0 && (
                       <>
@@ -521,7 +592,7 @@ export function ExpenseImportModal({
                         </p>
                       </>
                     )}
-                    {usesOther && protectedCategoryName && (
+                    {usesOther && !isBankMode && protectedCategoryName && (
                       <p className="mt-1">
                         {t("import.otherHint", {
                           other: protectedCategoryName,
@@ -567,6 +638,10 @@ export function ExpenseImportModal({
                           p.errors[field]
                             ? tValidation(p.errors[field]!)
                             : fieldMessage(`rows.${index}.${field}`);
+                        const categoryMissing =
+                          isBankMode &&
+                          !p.errors.categoryName &&
+                          p.categoryName === null;
                         return (
                           <tr
                             key={p.key}
@@ -617,7 +692,13 @@ export function ExpenseImportModal({
                                 }
                               />
                               <FieldError message={cellError("categoryName")} />
-                              {!p.errors.categoryName &&
+                              {categoryMissing && (
+                                <p className="mt-0.5 text-[10px] text-red-600">
+                                  {t("import.missingCategory")}
+                                </p>
+                              )}
+                              {!categoryMissing &&
+                                !p.errors.categoryName &&
                                 p.categoryKey === null &&
                                 protectedCategoryName && (
                                   <p className="mt-0.5 text-[10px] text-zinc-500">
@@ -712,9 +793,11 @@ export function ExpenseImportModal({
                         ? t("import.tooManyRows", { max: MAX_IMPORT_ROWS })
                         : invalidCount > 0
                           ? t("import.fixErrors")
-                          : checkingDuplicates
-                            ? t("import.checkingDuplicates")
-                            : ""}
+                          : missingCategoryCount > 0
+                            ? t("import.missingCategoryHint")
+                            : checkingDuplicates
+                              ? t("import.checkingDuplicates")
+                              : ""}
                   </p>
                   <div className="flex gap-2">
                     <Button variant="secondary" type="button" onClick={close}>

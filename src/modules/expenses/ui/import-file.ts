@@ -13,15 +13,22 @@ export class ImportFileError extends Error {
   }
 }
 
+function isSpreadsheet(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.endsWith(".xlsx") || lower.endsWith(".xls");
+}
+
 /**
- * Reads a CSV or .xlsx file into a grid of text cells, using the first sheet.
- * Both parsers are loaded on demand, so they stay out of the initial bundle.
+ * Reads a CSV, .xlsx or legacy .xls file into a grid of text cells, using the
+ * first sheet for spreadsheets. Parsers are loaded on demand so they stay out
+ * of the initial bundle.
  */
 export async function readImportFile(file: File): Promise<string[][]> {
   const name = file.name.toLowerCase();
   const isCsv = name.endsWith(".csv") || file.type === "text/csv";
-  const isXlsx = name.endsWith(".xlsx");
-  if (!isCsv && !isXlsx) throw new ImportFileError("unsupported");
+  if (!isCsv && !isSpreadsheet(file.name)) {
+    throw new ImportFileError("unsupported");
+  }
 
   if (isCsv) {
     const { default: Papa } = await import("papaparse");
@@ -31,9 +38,20 @@ export async function readImportFile(file: File): Promise<string[][]> {
   }
 
   try {
-    const { readSheet } = await import("read-excel-file/browser");
-    const sheet = (await readSheet(file)) as unknown as unknown[][];
-    return sheet.map((row) => row.map(cellToText));
+    const XLSX = await import("xlsx");
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(new Uint8Array(data), { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    if (!worksheet) throw new ImportFileError("parse");
+
+    const rows = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      raw: false,
+      defval: "",
+    }) as unknown[][];
+
+    return rows.map((row) => row.map((cell) => cellToText(cell)));
   } catch {
     throw new ImportFileError("parse");
   }
