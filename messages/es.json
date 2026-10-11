@@ -13,7 +13,8 @@
     "previous": "Anterior",
     "next": "Siguiente",
     "pageOf": "Página {page} de {total}",
-    "noResults": "Sin resultados"
+    "noResults": "Sin resultados",
+    "sourceCode": "Código fuente"
   },
   "nav": {
     "appName": "Expenser",
