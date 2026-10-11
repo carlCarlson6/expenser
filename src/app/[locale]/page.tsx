@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Link, redirect } from "@/i18n/navigation";
+import { GitHubIcon } from "@/shared/ui/github-icon";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
 
@@ -40,6 +41,7 @@ export default async function LandingPage({
   }
 
   const t = await getTranslations("landing");
+  const tCommon = await getTranslations("common");
 
   return (
     <div className="flex min-h-full flex-col">
@@ -109,11 +111,20 @@ export default async function LandingPage({
       </main>
 
       <footer className="border-t border-zinc-200 bg-zinc-50">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 py-4 sm:flex-row">
           <p className="text-sm text-zinc-500">
             © {new Date().getFullYear()} {t("appName")}
           </p>
           <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/carlCarlson6/expenser"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900"
+            >
+              <GitHubIcon />
+              {tCommon("sourceCode")}
+            </a>
             <LocaleLink locale="es" label={t("locales.spanish")} />
             <LocaleLink locale="en" label={t("locales.english")} />
           </div>

@@ -7,7 +7,7 @@ const intlMiddleware = createMiddleware(routing);
 
 // Public routes: landing page only (locale-prefixed or not). Auth now lives
 // on the landing page via the embedded Clerk <SignIn> form.
-const isPublicRoute = createRouteMatcher(["/", "/:locale"]);
+const isPublicRoute = createRouteMatcher(["/", "/es", "/en"]);
 
 // API routes authenticate on their own (see src/app/api/admin/route.ts) and
 // live outside [locale], so next-intl must not rewrite them.

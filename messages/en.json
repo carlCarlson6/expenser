@@ -13,7 +13,8 @@
     "previous": "Previous",
     "next": "Next",
     "pageOf": "Page {page} of {total}",
-    "noResults": "No results"
+    "noResults": "No results",
+    "sourceCode": "Source code"
   },
   "nav": {
     "appName": "Expenser",
