@@ -38,6 +38,7 @@
     "read-excel-file": "^9.3.12",
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",
+    "xlsx": "^0.18.5",
     "zod": "^4.6.5"
   },
   "devDependencies": {
