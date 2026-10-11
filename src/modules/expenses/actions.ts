@@ -48,9 +48,10 @@ export async function createExpenseAction(
   if (!parsed.success) {
     return fail("generic", z.flattenError(parsed.error).fieldErrors);
   }
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
-    await createExpense(createRepos(getDb()), actor, parsed.data);
+    await createExpense(createRepos(getDb()), actorResult.value, parsed.data);
     revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
@@ -94,9 +95,14 @@ export async function createExpensesBulkAction(
     return fail("generic", toBulkFieldErrors(parsed.error));
   }
 
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
-    await createExpensesBulk(createRepos(getDb()), actor, parsed.data.rows);
+    await createExpensesBulk(
+      createRepos(getDb()),
+      actorResult.value,
+      parsed.data.rows,
+    );
     revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
@@ -116,9 +122,13 @@ export async function updateExpenseAction(
       parsed.success ? undefined : z.flattenError(parsed.error).fieldErrors,
     );
   }
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
-    await updateExpense(createRepos(getDb()), actor, { id, ...parsed.data });
+    await updateExpense(createRepos(getDb()), actorResult.value, {
+      id,
+      ...parsed.data,
+    });
     revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
@@ -132,9 +142,10 @@ export async function deleteExpenseAction(
 ): Promise<ActionResult> {
   const id = formData.get("id");
   if (typeof id !== "string") return fail("generic");
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
-    await deleteExpense(createRepos(getDb()), actor, { id });
+    await deleteExpense(createRepos(getDb()), actorResult.value, { id });
     revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
@@ -167,11 +178,12 @@ export async function importExpensesAction(
     return fail("generic", toBulkFieldErrors(parsed.error));
   }
 
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
     await importExpenses(
       createRepos(getDb()),
-      actor,
+      actorResult.value,
       parsed.data.rows,
       (fn) => runInTransaction(getDb(), fn),
     );
@@ -185,18 +197,22 @@ export async function importExpensesAction(
 /**
  * Fingerprints of existing expenses in a date range, used by the import
  * preview to flag possible duplicates. Read-only; failures degrade to "no
- * duplicates" rather than blocking the import.
+ * duplicates" rather than blocking the import. Auth failures are not caught
+ * so they surface instead of being silently treated as "no duplicates".
  */
 export async function checkImportDuplicatesAction(
   input: unknown,
 ): Promise<string[]> {
   const parsed = duplicateRangeSchema.safeParse(input);
   if (!parsed.success) return [];
+
+  const actorResult = await getActor();
+  if (!actorResult.ok) throw new Error("Unauthorized");
+
   try {
-    const actor = await getActor();
     return await listDuplicateFingerprints(
       createRepos(getDb()),
-      actor,
+      actorResult.value,
       parsed.data,
     );
   } catch {

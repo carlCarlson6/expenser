@@ -23,9 +23,11 @@ export async function updateSettingsAction(
   if (!parsed.success) {
     return fail("generic", z.flattenError(parsed.error).fieldErrors);
   }
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
+
   try {
-    const actor = await getActor();
-    await updateSettings(createRepos(getDb()), actor, parsed.data);
+    await updateSettings(createRepos(getDb()), actorResult.value, parsed.data);
     revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {

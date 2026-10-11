@@ -14,7 +14,11 @@ export default async function CategoriesPage({
 }) {
   const { locale } = await params;
   const t = await getTranslations("categories");
-  const actor = await getActor();
+  const actorResult = await getActor();
+  if (!actorResult.ok) {
+    throw new Error("Unauthorized");
+  }
+  const actor = actorResult.value;
 
   const categories = await listCategoriesWithTotals(
     createRepos(getDb()),

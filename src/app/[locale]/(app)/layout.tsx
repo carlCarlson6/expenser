@@ -13,7 +13,11 @@ export default async function AppLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const actor = await getActor();
+  const actorResult = await getActor();
+  if (!actorResult.ok) {
+    throw new Error("Unauthorized");
+  }
+  const actor = actorResult.value;
 
   // The profile's language is the durable preference; if the URL locale
   // disagrees (e.g. fresh device without the locale cookie), realign once.

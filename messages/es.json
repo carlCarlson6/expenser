@@ -229,6 +229,7 @@
     "protectedCategory": "Esta categoría no se puede eliminar",
     "bulkEmpty": "Añade al menos un gasto",
     "tooManyRows": "Demasiados gastos en un solo envío",
-    "generic": "Ha ocurrido un error. Inténtalo de nuevo."
+    "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
+    "unauthorized": "Debes iniciar sesión para realizar esta acción."
   }
 }

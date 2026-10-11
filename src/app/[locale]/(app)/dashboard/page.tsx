@@ -45,7 +45,11 @@ export default async function DashboardPage({
   const { locale } = await params;
   const raw = await searchParams;
   const t = await getTranslations("dashboard");
-  const actor = await getActor();
+  const actorResult = await getActor();
+  if (!actorResult.ok) {
+    throw new Error("Unauthorized");
+  }
+  const actor = actorResult.value;
   const repos = createRepos(getDb());
   const today = new Date();
 

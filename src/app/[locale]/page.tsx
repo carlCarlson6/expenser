@@ -1,3 +1,4 @@
+import { SignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
@@ -43,51 +44,34 @@ export default async function LandingPage({
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex w-full max-w-5xl items-center px-4 py-3">
           <Link
             href="/"
             className="rounded-lg text-base font-bold tracking-tight transition-opacity hover:opacity-70"
           >
             {t("appName")}
           </Link>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/sign-in"
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-            >
-              {t("nav.signIn")}
-            </Link>
-            <Link
-              href="/sign-up"
-              className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
-            >
-              {t("nav.signUp")}
-            </Link>
-          </div>
         </div>
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto max-w-5xl px-4 py-16 text-center sm:py-24">
-          <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">
-            {t("hero.title")}
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-600">
-            {t("hero.subtitle")}
-          </p>
-          <div className="mt-10 flex items-center justify-center gap-3">
-            <Link
-              href="/sign-up"
-              className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
-            >
-              {t("hero.cta.primary")}
-            </Link>
-            <Link
-              href="/sign-in"
-              className="rounded-lg border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
-            >
-              {t("hero.cta.secondary")}
-            </Link>
+        <section className="mx-auto max-w-5xl px-4 py-16 sm:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div className="text-center lg:text-left">
+              <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl lg:mx-0">
+                {t("hero.title")}
+              </h1>
+              <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-600 lg:mx-0">
+                {t("hero.subtitle")}
+              </p>
+            </div>
+            <div className="mx-auto w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+              <SignIn
+                routing="hash"
+                signUpUrl="/"
+                fallbackRedirectUrl="/dashboard"
+              />
+            </div>
           </div>
         </section>
 
@@ -121,22 +105,7 @@ export default async function LandingPage({
           </div>
         </section>
 
-        <section className="mx-auto max-w-5xl px-4 py-16 text-center sm:py-20">
-          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">
-            {t("cta.title")}
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-zinc-600">
-            {t("cta.subtitle")}
-          </p>
-          <div className="mt-8">
-            <Link
-              href="/sign-up"
-              className="inline-flex rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
-            >
-              {t("cta.button")}
-            </Link>
-          </div>
-        </section>
+
       </main>
 
       <footer className="border-t border-zinc-200 bg-zinc-50">

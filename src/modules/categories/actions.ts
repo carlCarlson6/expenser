@@ -31,9 +31,10 @@ export async function createCategoryAction(
   if (!parsed.success) {
     return fail("generic", z.flattenError(parsed.error).fieldErrors);
   }
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
-    await createCategory(createRepos(getDb()), actor, parsed.data);
+    await createCategory(createRepos(getDb()), actorResult.value, parsed.data);
     revalidatePath("/[locale]", "layout");
     return ok;
   } catch (error) {
@@ -56,9 +57,10 @@ export async function renameCategoryAction(
       parsed.success ? undefined : z.flattenError(parsed.error).fieldErrors,
     );
   }
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
-    await renameCategory(createRepos(getDb()), actor, {
+    await renameCategory(createRepos(getDb()), actorResult.value, {
       id,
       name: parsed.data.name,
       color: parsed.data.color,
@@ -82,9 +84,10 @@ export async function setCategoryColorAction(
   if (typeof id !== "string" || !parsed.success) {
     return fail("generic");
   }
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
-    await setCategoryColor(createRepos(getDb()), actor, {
+    await setCategoryColor(createRepos(getDb()), actorResult.value, {
       id,
       color: parsed.data.color!,
     });
@@ -101,11 +104,16 @@ export async function deleteCategoryAction(
 ): Promise<ActionResult> {
   const id = formData.get("id");
   if (typeof id !== "string") return fail("generic");
+  const actorResult = await getActor();
+  if (!actorResult.ok) return fail(actorResult.error);
   try {
-    const actor = await getActor();
     // Reassign + delete must be atomic.
     await getDb().transaction(async (tx) => {
-      await deleteCategory(createRepos(tx as unknown as Db), actor, { id });
+      await deleteCategory(
+        createRepos(tx as unknown as Db),
+        actorResult.value,
+        { id },
+      );
     });
     revalidatePath("/[locale]", "layout");
     return ok;
