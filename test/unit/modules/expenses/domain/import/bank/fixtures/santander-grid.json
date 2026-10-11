@@ -1,0 +1,21 @@
+[
+  ["", "", "CUENTA SANTANDER", "FECHA", "", ""],
+  ["", "", "ES3700750090900703364029", "10/10/2026 | 20:14:54", "", ""],
+  ["", "", "Titular", "Saldo", "", ""],
+  ["", "", "ACITORES DEVAL CARLOS", "49.883,45 EUR", "", ""],
+  ["", "", "", "", "", ""],
+  ["Movimientos", "", "", "", "", ""],
+  ["", "", "", "", "", ""],
+  ["FECHA OPERACIÓN", "FECHA VALOR", "CONCEPTO", "IMPORTE EUR", "SALDO", ""],
+  ["09/10/2026", "09/10/2026", "Pago Movil En Supermercado Local, Tarj. :*841010", "-22.80", "49.883,45", ""],
+  ["08/10/2026", "08/10/2026", "Pago Movil En Cafeteria, Tarj. :*841010", "-6.95", "49.906,25", ""],
+  ["05/10/2026", "05/10/2026", "Transferencia A Favor De Amigo Concepto: Cena", "-20.00", "49.999,58", ""],
+  ["01/10/2026", "01/10/2026", "Transferencia A Favor De Propietario Concepto: Alquiler", "-900.00", "50.083,64", ""],
+  ["29/09/2026", "29/09/2026", "Transferencia De Empresa, Concepto Nomina Septiembre.", "2.298,94", "51.037,31", ""],
+  ["28/09/2026", "28/09/2026", "Retirada De Efectivo En Cajero Automatico", "-150.00", "48.738,37", ""],
+  ["25/09/2026", "25/09/2026", "Compra Online Marketplace", "-1.234,56", "49.992,99", ""],
+  ["24/09/2026", "24/09/2026", "Pago Movil En Estanco", "0,00", "49.992,99", ""],
+  ["23/09/2026", "23/09/2026", "", "-10.00", "50.002,99", ""],
+  ["fecha inválida", "23/09/2026", "Fecha malformada", "-10.00", "50.012,99", ""],
+  ["20/09/2026", "20/09/2026", "Importe malformado", "no es un importe", "50.022,99", ""]
+]
