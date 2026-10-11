@@ -23,7 +23,11 @@ export default async function ExpensesPage({
   const raw = await searchParams;
   const t = await getTranslations("expenses");
   const tCommon = await getTranslations("common");
-  const actor = await getActor();
+  const actorResult = await getActor();
+  if (!actorResult.ok) {
+    throw new Error("Unauthorized");
+  }
+  const actor = actorResult.value;
   const repos = createRepos(getDb());
 
   const filters = expenseFiltersSchema.parse({

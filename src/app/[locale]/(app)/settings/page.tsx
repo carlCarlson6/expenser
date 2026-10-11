@@ -5,7 +5,11 @@ import { SettingsForm } from "@/modules/users/ui/settings-form";
 
 export default async function SettingsPage() {
   const t = await getTranslations("settings");
-  const actor = await getActor();
+  const actorResult = await getActor();
+  if (!actorResult.ok) {
+    throw new Error("Unauthorized");
+  }
+  const actor = actorResult.value;
 
   return (
     <section className="mx-auto max-w-md">

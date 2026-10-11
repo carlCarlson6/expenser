@@ -1,3 +1,8 @@
+/** Generic result monad. */
+export type Result<T, E = string> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
 /** Uniform result type returned by Server Actions to form components. */
 export type ActionResult =
   | { ok: true }

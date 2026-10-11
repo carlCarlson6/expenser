@@ -229,6 +229,7 @@
     "protectedCategory": "This category cannot be deleted",
     "bulkEmpty": "Add at least one expense",
     "tooManyRows": "Too many expenses in a single submission",
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "unauthorized": "You must be signed in to perform this action."
   }
 }
